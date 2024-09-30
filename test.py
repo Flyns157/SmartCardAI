@@ -1,8 +1,8 @@
 import random
 import numpy as np
 import torch
-import rlcard
 from rlcard.agents import DQNAgent
+import rlcard
 
 class DQNAgentUNO(DQNAgent):
     def __init__(self, num_actions, state_shape, mlp_layers=None, learning_rate=0.001, device=None):
@@ -10,7 +10,6 @@ class DQNAgentUNO(DQNAgent):
         self.fitness = 0
 
     def mutate(self):
-        # Implémentez ici une méthode pour modifier légèrement les poids du réseau
         for param in self.q_estimator.qnet.parameters():
             noise = torch.randn_like(param) * 0.1
             param.data += noise
@@ -39,7 +38,11 @@ class GenerationalDQNTrainer:
             done = False
             while not done:
                 action, _ = agent.eval_step(state)
-                state, reward, done, _, _ = self.env.step(action)
+                next_state, trajectories = self.env.step(action)
+                # Extract reward and done from trajectories
+                reward = trajectories[0][-1]['reward']
+                done = trajectories[0][-1]['done']
+                state = next_state
                 total_reward += reward
         return total_reward / self.games_per_evaluation
 
