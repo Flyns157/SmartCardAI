@@ -1,80 +1,89 @@
+import random
+import numpy as np
+import torch
+import rlcard
 from rlcard.agents import DQNAgent
 
-import numpy as np
+class DQNAgentUNO(DQNAgent):
+    def __init__(self, num_actions, state_shape, mlp_layers=None, learning_rate=0.001, device=None):
+        super().__init__(num_actions=num_actions, state_shape=state_shape, mlp_layers=mlp_layers, learning_rate=learning_rate, device=device)
+        self.fitness = 0
 
-import rlcard
-from rlcard.agents import RandomAgent
-from rlcard.utils import get_device
+    def mutate(self):
+        # Implémentez ici une méthode pour modifier légèrement les poids du réseau
+        for param in self.q_estimator.qnet.parameters():
+            noise = torch.randn_like(param) * 0.1
+            param.data += noise
 
-# Créer l'environnement
+class GenerationalDQNTrainer:
+    def __init__(self, env, population_size=10, generations=100, games_per_evaluation=100):
+        self.env = env
+        self.population_size = population_size
+        self.generations = generations
+        self.games_per_evaluation = games_per_evaluation
+        self.population = []
+
+    def initialize_population(self):
+        for _ in range(self.population_size):
+            agent = DQNAgentUNO(
+                num_actions=self.env.num_actions,
+                state_shape=self.env.state_shape[0],
+                mlp_layers=[64, 64]
+            )
+            self.population.append(agent)
+
+    def evaluate_fitness(self, agent):
+        total_reward = 0
+        for _ in range(self.games_per_evaluation):
+            state, _ = self.env.reset()
+            done = False
+            while not done:
+                action, _ = agent.eval_step(state)
+                state, reward, done, _, _ = self.env.step(action)
+                total_reward += reward
+        return total_reward / self.games_per_evaluation
+
+    def select_best_agents(self):
+        self.population.sort(key=lambda x: x.fitness, reverse=True)
+        return self.population[:self.population_size // 2]
+
+    def create_next_generation(self, best_agents):
+        next_generation = best_agents.copy()
+        while len(next_generation) < self.population_size:
+            parent = random.choice(best_agents)
+            child = DQNAgentUNO(
+                num_actions=self.env.num_actions,
+                state_shape=self.env.state_shape[0],
+                mlp_layers=[64, 64]
+            )
+            child.q_estimator.qnet.load_state_dict(parent.q_estimator.qnet.state_dict())
+            child.mutate()
+            next_generation.append(child)
+        return next_generation
+
+    def train(self):
+        self.initialize_population()
+
+        for generation in range(self.generations):
+            print(f"Generation {generation + 1}/{self.generations}")
+
+            for agent in self.population:
+                agent.fitness = self.evaluate_fitness(agent)
+
+            best_agents = self.select_best_agents()
+            best_fitness = best_agents[0].fitness
+            avg_fitness = sum(agent.fitness for agent in self.population) / len(self.population)
+
+            print(f"Best fitness: {best_fitness:.2f}, Average fitness: {avg_fitness:.2f}")
+
+            self.population = self.create_next_generation(best_agents)
+
+        return best_agents[0]
+
+# Utilisation
 env = rlcard.make('uno')
+trainer = GenerationalDQNTrainer(env)
+best_agent = trainer.train()
 
-# Check whether gpu is available
-device = get_device()
-
-# Créer l'agent DQN
-agent = DQNAgent(
-    num_actions=env.num_actions,
-    state_shape=env.state_shape[0],
-    mlp_layers=[64, 64],  # Vous pouvez ajuster les couches selon vos besoins
-    device=device,
-)
-
-# Ajouter l'agent à l'environnement
-env.set_agents([agent] + [RandomAgent(num_actions=env.num_actions) for _ in range(env.num_players - 1)])
-
-import copy
-
-class DQNGeneration:
-    def __init__(self, base_agent, num_variants=5):
-        self.base_agent = base_agent
-        self.num_variants = num_variants
-        self.agents = []
-
-    def create_variants(self):
-        for _ in range(self.num_variants):
-            # Clone the base agent and possibly change hyperparameters
-            variant = copy.deepcopy(self.base_agent)
-            # Par exemple, tu peux changer le taux d'apprentissage ou d'autres paramètres
-            # variant.learning_rate *= np.random.uniform(0.5, 1.5)  # Ajustement aléatoire du taux d'apprentissage
-            self.agents.append(variant)
-
-    def evaluate_variants(self, env, num_games=100):
-        results = []
-        for agent in self.agents:
-            # Évaluer chaque agent
-            env.set_agents([agent] + [RandomAgent(num_actions=env.num_actions) for _ in range(env.num_players - 1)])
-            win_count = 0
-            for _ in range(num_games):
-                trajectories, payoffs = env.run(is_training=False)
-                if payoffs[0] > 0:
-                    win_count += 1
-            results.append(win_count)
-        return results
-
-    def select_best_variants(self, results):
-        # Garde les agents avec le meilleur score
-        best_agents = np.argsort(results)[-2:]  # Garde les deux meilleurs
-        self.agents = [self.agents[i] for i in best_agents]
-
-
-num_generations = 10
-num_episodes = 100
-num_eval_games = 1000
-for generation in range(num_generations):
-    print(f"Generation {generation + 1}")
-    generation_manager = DQNGeneration(agent)
-    generation_manager.create_variants()
-    
-    # Entraînement des variantes
-    for episode in range(num_episodes):
-        # Entraîner chaque agent de la génération
-        for agent in generation_manager.agents:
-            # Exécuter le code d'entraînement ici pour chaque agent
-            pass
-
-    # Évaluer les variantes
-    results = generation_manager.evaluate_variants(env, num_eval_games)
-    
-    # Sélectionner les meilleurs agents pour la prochaine génération
-    generation_manager.select_best_variants(results)
+# Sauvegarde du meilleur agent
+torch.save(best_agent.q_estimator.qnet.state_dict(), 'best_uno_agent.pth')
