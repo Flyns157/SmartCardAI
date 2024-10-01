@@ -1,6 +1,7 @@
 import os
 import argparse
 import time
+import random
 
 import torch
 
@@ -58,6 +59,9 @@ def train(args):
     agents = [agent]
     for _ in range(1, env.num_players):
         agents.append(RandomAgent(num_actions=env.num_actions))
+    
+    # Shuffle agents to choose the starting agent randomly
+    random.shuffle(agents)
     env.set_agents(agents)
 
     # Start training
@@ -74,12 +78,10 @@ def train(args):
             # Generate data from the environment
             trajectories, payoffs = env.run(is_training=True)
 
-            # Reorganaize the data to be state, action, reward, next_state, done
+            # Reorganize the data to be state, action, reward, next_state, done
             trajectories = reorganize(trajectories, payoffs)
 
             # Feed transitions into agent memory, and train the agent
-            # Here, we assume that DQN always plays the first position
-            # and the other players play randomly (if any)
             for ts in trajectories[0]:
                 agent.feed(ts)
 
@@ -105,7 +107,7 @@ def train(args):
     print('Model saved in', save_path)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser("DQN/NFSP example in RLCard")
+    parser = argparse.ArgumentParser("DQN/NFSP in RLCard")
     parser.add_argument(
         '--env',
         type=str,
