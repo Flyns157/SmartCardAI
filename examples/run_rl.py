@@ -194,3 +194,7 @@ if __name__ == '__main__':
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
     train(args)
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = ''
+    from argparse import Namespace
+    train(Namespace(env='uno', algorithm='dqn', cuda='', seed=42, num_episodes=5000, num_eval_games=2000, evaluate_every=100, log_dir='experiments/', max_time=600, resume_training=True, model_path='experiments/model.pth', train_against_self=False))
