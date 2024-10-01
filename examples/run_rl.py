@@ -49,6 +49,12 @@ def train(args):
             q_mlp_layers=[64,64],
             device=device,
         )
+    
+    # Load existing model if resume_training is True
+    if args.resume_training and os.path.exists(args.model_path):
+        agent = torch.load(args.model_path)
+        print(f'Model loaded from {args.model_path}')
+    
     agents = [agent]
     for _ in range(1, env.num_players):
         agents.append(RandomAgent(num_actions=env.num_actions))
@@ -160,6 +166,17 @@ if __name__ == '__main__':
         type=int,
         default=None,
         help='Maximum training time in seconds',
+    )
+    parser.add_argument(
+        '--resume_training',
+        action='store_true',
+        help='Resume training from an existing model',
+    )
+    parser.add_argument(
+        '--model_path',
+        type=str,
+        default='experiments/leduc_holdem_dqn_result/model.pth',
+        help='Path to the existing model to resume training',
     )
 
     args = parser.parse_args()
