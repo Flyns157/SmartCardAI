@@ -40,6 +40,7 @@ class GenerationalDQNTrainer:
                 action, _ = agent.eval_step(state)
                 next_state, trajectories = self.env.step(action)
                 # Extract reward and done from trajectories
+                print(next_state, trajectories)
                 reward = trajectories[0][-1]['reward']
                 done = trajectories[0][-1]['done']
                 state = next_state

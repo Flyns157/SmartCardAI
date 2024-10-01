@@ -1,5 +1,6 @@
 import os
 import argparse
+import time
 
 import torch
 
@@ -54,8 +55,12 @@ def train(args):
     env.set_agents(agents)
 
     # Start training
+    start_time = time.time()
     with Logger(args.log_dir) as logger:
         for episode in range(args.num_episodes):
+
+            if args.max_time and (time.time() - start_time) > args.max_time:
+                break
 
             if args.algorithm == 'nfsp':
                 agents[0].sample_episode_policy()
@@ -149,6 +154,12 @@ if __name__ == '__main__':
         '--log_dir',
         type=str,
         default='experiments/leduc_holdem_dqn_result/',
+    )
+    parser.add_argument(
+        '--max_time',
+        type=int,
+        default=None,
+        help='Maximum training time in seconds',
     )
 
     args = parser.parse_args()
