@@ -159,7 +159,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='experiments/leduc_holdem_dqn_result/',
+        default='experiments/',
     )
     parser.add_argument(
         '--max_time',
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--model_path',
         type=str,
-        default='experiments/leduc_holdem_dqn_result/model.pth',
+        default='experiments/model.pth',
         help='Path to the existing model to resume training',
     )
 
