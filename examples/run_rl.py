@@ -57,8 +57,12 @@ def train(args):
         print(f'Model loaded from {args.model_path}')
     
     agents = [agent]
-    for _ in range(1, env.num_players):
-        agents.append(RandomAgent(num_actions=env.num_actions))
+    if args.train_against_self:
+        for _ in range(1, env.num_players):
+            agents.append(agent)
+    else:
+        for _ in range(1, env.num_players):
+            agents.append(RandomAgent(num_actions=env.num_actions))
     
     # Shuffle agents to choose the starting agent randomly
     random.shuffle(agents)
@@ -179,6 +183,11 @@ if __name__ == '__main__':
         type=str,
         default='experiments/model.pth',
         help='Path to the existing model to resume training',
+    )
+    parser.add_argument(
+        '--train_against_self',
+        action='store_true',
+        help='Train the agent against a copy of itself',
     )
 
     args = parser.parse_args()
