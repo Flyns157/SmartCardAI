@@ -13,6 +13,8 @@ from rlcard.agents.human_agents.uno_human_agent import _print_action
 
 import os
 import torch
+import random
+import time
 
 def load_model(model_path, env=None, position=None, device=None):
     if os.path.isfile(model_path):  # Torch model
@@ -122,7 +124,7 @@ def lets_play_uno(first_agent, second_agent):
 
 
 
-def train(env_type:str, algorithm:str, seed:int, num_episodes:int = 5000, num_eval_games:int = 2000, evaluate_every:int = 100, log_dir:str = 'experiments/', *args, **kwargs):
+def train(env_type:str, algorithm:str, seed:int, num_episodes:int = 5000, num_eval_games:int = 2000, evaluate_every:int = 100, log_dir:str = 'experiments/', max_time:int = 600, resume_training:bool = False, train_against_self:bool = False, *args, **kwargs):
 
     # Check whether gpu is available
     device = get_device()
@@ -156,14 +158,33 @@ def train(env_type:str, algorithm:str, seed:int, num_episodes:int = 5000, num_ev
             q_mlp_layers=[64,64],
             device=device,
         )
+    
+    # Load existing model if resume_training is True
+    model_path = os.path.join(log_dir, 'model.pth')
+    if resume_training and os.path.exists(model_path):
+        agent = torch.load(model_path)
+        print(f'Model loaded from {model_path}')
+    
     agents = [agent]
-    for _ in range(1, env.num_players):
-        agents.append(RandomAgent(num_actions=env.num_actions))
+    if train_against_self:
+        for _ in range(1, env.num_players):
+            agents.append(agent)
+    else:
+        for _ in range(1, env.num_players):
+            agents.append(RandomAgent(num_actions=env.num_actions))
+            # agents.append(UNORuleModelV2().agents[0])
+    
+    # Shuffle agents to choose the starting agent randomly
+    random.shuffle(agents)
     env.set_agents(agents)
 
     # Start training
+    start_time = time.time()
     with Logger(log_dir) as logger:
         for episode in range(num_episodes):
+
+            if max_time and (time.time() - start_time) > max_time:
+                break
 
             if algorithm == 'nfsp':
                 agents[0].sample_episode_policy()
@@ -175,8 +196,6 @@ def train(env_type:str, algorithm:str, seed:int, num_episodes:int = 5000, num_ev
             trajectories = reorganize(trajectories, payoffs)
 
             # Feed transitions into agent memory, and train the agent
-            # Here, we assume that DQN always plays the first position
-            # and the other players play randomly (if any)
             for ts in trajectories[0]:
                 agent.feed(ts)
 
