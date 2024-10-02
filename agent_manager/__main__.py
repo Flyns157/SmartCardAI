@@ -1,8 +1,9 @@
 import os
-
+import argparse
+from __init__ import train
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser("DQN/NFSP in RLCard")
+    parser = argparse.ArgumentParser("DQN/NFSP example in RLCard")
     parser.add_argument(
         '--env',
         type=str,
@@ -56,32 +57,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='experiments/',
-    )
-    parser.add_argument(
-        '--max_time',
-        type=int,
-        default=None,
-        help='Maximum training time in seconds',
-    )
-    parser.add_argument(
-        '--resume_training',
-        action='store_true',
-        help='Resume training from an existing model',
-    )
-    parser.add_argument(
-        '--model_path',
-        type=str,
-        default='experiments/model.pth',
-        help='Path to the existing model to resume training',
-    )
-    parser.add_argument(
-        '--train_against_self',
-        action='store_true',
-        help='Train the agent against a copy of itself',
+        default='experiments/leduc_holdem_dqn_result/',
     )
 
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
-    train(args)
+    # print(args.__dict__.keys())
+    train(**(args.__dict__))
