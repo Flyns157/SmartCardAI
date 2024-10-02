@@ -122,7 +122,7 @@ def lets_play_uno(first_agent, second_agent):
 
 
 
-def train(env_type:str, algorithm:str, seed:int, num_episodes:int = 5000, num_eval_games:int = 2000, evaluate_every:int = 100, log_dir:str = 'experiments/'):
+def train(env_type:str, algorithm:str, seed:int, num_episodes:int = 5000, num_eval_games:int = 2000, evaluate_every:int = 100, log_dir:str = 'experiments/', *args, **kwargs):
 
     # Check whether gpu is available
     device = get_device()

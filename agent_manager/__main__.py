@@ -5,7 +5,7 @@ from __init__ import train
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("DQN/NFSP example in RLCard")
     parser.add_argument(
-        '--env',
+        '--env_type',
         type=str,
         default='leduc-holdem',
         choices=[
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='experiments/leduc_holdem_dqn_result/',
+        default='experiments/',
     )
 
     args = parser.parse_args()
