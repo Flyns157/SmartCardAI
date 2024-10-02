@@ -309,5 +309,5 @@ else:
                     end_eps=0.05,
                     decay_episodes=5000,
                     memory_size=50000,
-                    batch_size=32,
+                    batch_size=64,
                     save_every=1000))
