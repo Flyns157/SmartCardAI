@@ -85,5 +85,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
-    print(args.__dict__.keys())
+    # print(args.__dict__.keys())
     train(**(args.__dict__))
