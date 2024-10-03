@@ -4,6 +4,7 @@ from rlcard import models
 from rlcard.agents import RandomAgent
 from rlcard.envs import Env
 import rlcard
+import numpy as np
 
 def load_model(model_path:str, env:Env = None, position:int = None, device:str = None, weights_only:bool = False):
     """
@@ -36,7 +37,7 @@ def load_model(model_path:str, env:Env = None, position:int = None, device:str =
     print(f'Model loaded from {model_path}')
     return agent
 
-def tournament(env: Env, num: int, display_results:bool = False):
+def tournament(env: Env, num: int, display_results: bool = False):
     ''' Evaluate the performance of the agents in the environment and display the results.
 
     Args:
@@ -55,7 +56,7 @@ def tournament(env: Env, num: int, display_results:bool = False):
         - Displays a ranking of agents by number of wins, including their average payoff.
     '''
     payoffs = [0 for _ in range(env.num_players)]
-    wins = [0 for _ in range(env.num_players)]  # To track the number of wins
+    wins = [0 for _ in range(env.num_players)]
     counter = 0
     
     while counter < num:
@@ -63,14 +64,14 @@ def tournament(env: Env, num: int, display_results:bool = False):
         
         if isinstance(_payoffs, list):
             for _p in _payoffs:
-                winner = _p.index(max(_p))  # Find the index of the winning player
-                wins[winner] += 1           # Increment the win count for the winner
+                winner = np.argmax(_p)
+                wins[winner] += 1
                 for i, _ in enumerate(payoffs):
                     payoffs[i] += _p[i]
                 counter += 1
         else:
-            winner = _payoffs.index(max(_payoffs))  # Single game: Find the winner
-            wins[winner] += 1                       # Increment win count
+            winner = np.argmax(_payoffs)
+            wins[winner] += 1
             for i, _ in enumerate(payoffs):
                 payoffs[i] += _payoffs[i]
             counter += 1
@@ -88,8 +89,9 @@ def tournament(env: Env, num: int, display_results:bool = False):
     if display_results:
         for i, (agent, win_count, avg_payoff) in enumerate(results):
             print(f"[ {win_count/num:.2%} ] Rank {i + 1}: Agent {agent} - Wins: {win_count}, Avg Payoff: {avg_payoff:.2f}")
-    
+
     return payoffs, wins
+
 
 def agent_1v1(agent, agent_bis=None, num_games:int = 10000, env_type:str = 'uno'):
     """
