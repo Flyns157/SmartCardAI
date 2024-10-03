@@ -16,7 +16,7 @@ import torch
 import random
 import time
 
-def load_model(model_path, env=None, position=None, device=None):
+def load_model(model_path:str, env=None, position=None, device=None, weights_only:bool = False):
     """
     Charge un modèle d'agent à partir d'un chemin donné.
 
@@ -31,7 +31,7 @@ def load_model(model_path, env=None, position=None, device=None):
     """
     if os.path.isfile(model_path):  # Torch model
         import torch
-        agent = torch.load(model_path, map_location=device)
+        agent = torch.load(model_path, map_location=device, weights_only=weights_only)
         agent.set_device(device)
     elif os.path.isdir(model_path):  # CFR model
         from rlcard.agents import CFRAgent
@@ -44,6 +44,7 @@ def load_model(model_path, env=None, position=None, device=None):
         from rlcard import models
         agent = models.load(model_path).agents[position]
 
+    print(f'Model loaded from {model_path}')
     return agent
 
 def evaluate_agents(agent, agent_bis=None, num_games=10000):
@@ -131,7 +132,7 @@ def lets_play_uno(first_agent, second_agent):
             print(type(env.agents[1]))
         print()
 
-def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training:str = None, train_against_self: bool = False, *args, **kwargs):
+def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training:str = None, train_against_self: bool = False, mlp_layers:list[int] = [64, 64], *args, **kwargs):
     """
     Entraîne un agent dans un environnement donné.
 
@@ -172,7 +173,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
         agent = DQNAgent(
             num_actions=env.num_actions,
             state_shape=env.state_shape[0],
-            mlp_layers=[64, 64],
+            mlp_layers=mlp_layers,
             device=device,
         )
     elif algorithm == 'nfsp':
@@ -186,11 +187,14 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
         )
 
     # Charger un modèle existant si resume_training contient quelque chose
-    if resume_training:
+    if resume_training is not None:
         model_path = os.path.join(dir, resume_training)
         if os.path.exists(model_path):
-            agent = torch.load(model_path)
-            print(f'Model loaded from {model_path}')
+            agent = load_model(model_path=model_path, device=device)
+        else:
+            print(f"/!\\ The {resume_training} model don't exist")
+            print(f"Start training a new model ...")
+            time.sleep(3)
 
     agents = [agent]
     if train_against_self:
