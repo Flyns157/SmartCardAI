@@ -36,38 +36,23 @@ def load_model(model_path:str, env:Env = None, position:int = None, device:str =
     print(f'Model loaded from {model_path}')
     return agent
 
-
-
-
-
-
-
-
-
-
-
-
-# ======================================================================================================================================================================
-# ======================================================================================================================================================================
-
-
-
-
-
-
-
-
-
-
-def tournament(env: Env, num: int, display_wins:bool = False):
-    ''' Evaluate the performance of the agents in the environment
+def tournament(env: Env, num: int, display_results:bool = False):
+    ''' Evaluate the performance of the agents in the environment and display the results.
 
     Args:
         env (Env class): The environment to be evaluated.
         num (int): The number of games to play.
+        display_results (bool): if it must display results.
 
     Returns:
-        A list of average payoffs for each player and the number of wins for each player.
+        payoffs (list): A list of average payoffs for each player.
+        wins (list): A list of the number of wins for each player.
+
+    Functionality:
+        - Runs the specified number of games (`num`) in the environment.
+        - Tracks the number of wins for each agent and calculates the average payoffs.
+        - Sorts the agents based on their number of wins, from most to least effective.
+        - Displays a ranking of agents by number of wins, including their average payoff.
     '''
     payoffs = [0 for _ in range(env.num_players)]
     wins = [0 for _ in range(env.num_players)]  # To track the number of wins
@@ -92,14 +77,21 @@ def tournament(env: Env, num: int, display_wins:bool = False):
     
     for i, _ in enumerate(payoffs):
         payoffs[i] /= counter
+
+    # Combine wins and payoffs into tuples for sorting
+    results = [(i, wins[i], payoffs[i]) for i in range(env.num_players)]
+
+    # Sort by number of wins (descending)
+    results.sort(key=lambda x: x[1], reverse=True)
     
-    # Print the number of wins for each player
-    for i, win_count in enumerate(wins):
-        print(f"[{win_count/num:.2%}] Agent {i} has {win_count} wins.")
+    # Print the results in order of efficiency
+    if display_results:
+        for i, (agent, win_count, avg_payoff) in enumerate(results):
+            print(f"[ {win_count/num:.2%} ] Rank {i + 1}: Agent {agent} - Wins: {win_count}, Avg Payoff: {avg_payoff:.2f}")
     
     return payoffs, wins
 
-def evaluate_agents(agent, agent_bis=None, num_games=10000):
+def agent_1v1(agent, agent_bis=None, num_games:int = 10000, env_type:str = 'uno'):
     """
     Évalue deux agents en jouant un nombre donné de parties.
 
@@ -112,7 +104,7 @@ def evaluate_agents(agent, agent_bis=None, num_games=10000):
         tuple: Le nombre de victoires pour chaque agent.
     """
     # Créer l'environnement pour le jeu Uno
-    env = rlcard.make('uno')
+    env = rlcard.make(env_type)
 
     if agent_bis is None:
         agent_bis = RandomAgent(num_actions=env.num_actions)
@@ -120,41 +112,54 @@ def evaluate_agents(agent, agent_bis=None, num_games=10000):
     # Associer les agents à l'environnement
     env.set_agents([agent, agent_bis])
 
-    # Variables pour compter les résultats
-    first_agent_wins = 0
-    second_agent_wins = 0
+    # Lancer le tournoi
+    return tournament(env=env, num=num_games, display_results=True)[1]
 
-    # Lancer les parties
-    for _ in range(num_games):
-        # Exécuter une partie
-        trajectories, payoffs = env.run(is_training=False)
+def avg(E: list | tuple | set) -> int | float:
+    ''' Calculate the average of a list, tuple, or set of numbers.
 
-        # Le payoff du premier joueur correspond à l'agent basé sur des règles
-        if payoffs[0] > 0:
-            first_agent_wins += 1
-        else:
-            second_agent_wins += 1
+    Args:
+        E (list, tuple, or set): A collection of numeric values (int or float) to compute the average.
 
-    # Afficher les résultats finaux
-    print(f"Après {num_games} parties :")
-    print(f"Agent 1 a gagné {first_agent_wins} fois")
-    print(f"Agent 2 a gagné {second_agent_wins} fois")
-    print(f"Taux de victoire de l'agent 1 : {first_agent_wins / num_games:.2%}")
-    print(f"Taux de victoire de l'agent 2 : {second_agent_wins / num_games:.2%}")
+    Returns:
+        int or float: The average of the values in the collection.
+    
+    Raises:
+        ZeroDivisionError: If the input collection is empty.
 
-    return first_agent_wins, second_agent_wins
+    Example:
+        avg([1, 2, 3, 4, 5])   # Returns 3.0
+        avg((10, 20, 30))      # Returns 20.0
+        avg({1.5, 2.5, 3.5})   # Returns 2.5
+    '''
+    return sum(E) / len(E)
 
 
-# ======================================================================================================================================================================
-# ======================================================================================================================================================================
+def plot_curve(csv_path: str, save_path: str, algorithm: str, display_avg: bool = False) -> Figure:
+    ''' Plot and save a reward curve from a CSV file.
 
+    Args:
+        csv_path (str): The path to the CSV file containing the episode-reward data.
+        save_path (str): The path where the generated plot will be saved.
+        algorithm (str): The name of the algorithm to be displayed in the plot legend.
+        display_avg (bool, optional): Whether to display the average reward line (default is False).
 
+    Returns:
+        Figure: The matplotlib figure object of the generated plot.
 
-def avg(E:list|tuple|set) -> int|float:
-    return sum(E)/len(E)
+    CSV Format:
+        The CSV file should contain at least two columns: 
+        - 'episode': An integer representing the episode number.
+        - 'reward': A float representing the reward value for that episode.
 
-def plot_curve(csv_path:str, save_path:str, algorithm:str, display_avg:bool = False) -> Figure:
-    ''' Read data from csv file and plot the results
+    Functionality:
+        - Reads episode-reward pairs from the CSV file and plots them on a graph.
+        - If `display_avg` is set to True, an average line for the rewards is plotted.
+        - The plot is labeled with the algorithm's name and saved to the specified `save_path`.
+        - If the directory for `save_path` does not exist, it is created.
+
+    Example:
+        plot_curve('data/rewards.csv', 'plots/reward_curve.png', 'DQN', display_avg=True)
     '''
     import os
     import csv
@@ -168,7 +173,8 @@ def plot_curve(csv_path:str, save_path:str, algorithm:str, display_avg:bool = Fa
             ys.append(float(row['reward']))
         fig, ax = plt.subplots()
         ax.plot(xs, ys, label=algorithm)
-        ax.plot([avg(xs)]*len(xs), ys, label=algorithm+"_avg")
+        if display_avg:
+            ax.plot([avg(xs)] * len(xs), ys, label=algorithm + "_avg")
         ax.set(xlabel='episode', ylabel='reward')
         ax.legend()
         ax.grid()

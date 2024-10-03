@@ -4,6 +4,7 @@ from rlcard.utils import (
     get_device,
     set_seed,
     reorganize,
+    tournament,
     Logger
 )
 from rlcard.agents.human_agents.uno_human_agent import _print_action
@@ -12,7 +13,7 @@ import os
 import torch
 import random
 import time
-from .utils import load_model, plot_curve, tournament
+from .utils import load_model, plot_curve
 
 def lets_play_uno(first_agent, second_agent) -> int:
     """
