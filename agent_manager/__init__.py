@@ -131,7 +131,7 @@ def lets_play_uno(first_agent, second_agent):
             print(type(env.agents[1]))
         print()
 
-def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, log_dir: str = 'experiments/', max_time: int = 600, resume_training: bool = False, train_against_self: bool = False, *args, **kwargs):
+def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training:str = None, train_against_self: bool = False, *args, **kwargs):
     """
     Entraîne un agent dans un environnement donné.
 
@@ -142,9 +142,9 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
         num_episodes (int, optional): Le nombre d'épisodes d'entraînement. Par défaut 5000.
         num_eval_games (int, optional): Le nombre de parties d'évaluation. Par défaut 2000.
         evaluate_every (int, optional): La fréquence d'évaluation. Par défaut 100.
-        log_dir (str, optional): Le répertoire de journalisation. Par défaut 'experiments/'.
+        dir (str, optional): Le répertoire de journalisation et de sauvegarde. Par défaut 'experiments/'.
         max_time (int, optional): Le temps maximum d'entraînement en secondes. Par défaut 600.
-        resume_training (bool, optional): Reprendre l'entraînement à partir d'un modèle existant. Par défaut False.
+        resume_training (str, optional): Reprendre l'entraînement à partir d'un modèle existant si le nom est spécifié. Par défaut None.
         train_against_self (bool, optional): Entraîner l'agent contre lui-même. Par défaut False.
         *args: Arguments supplémentaires.
         **kwargs: Arguments supplémentaires.
@@ -185,11 +185,12 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
             device=device,
         )
 
-    # Charger un modèle existant si resume_training est True
-    model_path = os.path.join(log_dir, 'model.pth')
-    if resume_training and os.path.exists(model_path):
-        agent = torch.load(model_path)
-        print(f'Model loaded from {model_path}')
+    # Charger un modèle existant si resume_training contient quelque chose
+    if resume_training:
+        model_path = os.path.join(dir, resume_training)
+        if os.path.exists(model_path):
+            agent = torch.load(model_path)
+            print(f'Model loaded from {model_path}')
 
     agents = [agent]
     if train_against_self:
@@ -206,7 +207,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
 
     # Commencer l'entraînement
     start_time = time.time()
-    with Logger(log_dir) as logger:
+    with Logger(dir) as logger:
         for episode in range(num_episodes):
 
             if max_time and (time.time() - start_time) > max_time:
@@ -242,6 +243,6 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
     plot_curve(csv_path, fig_path, algorithm)
 
     # Sauvegarder le modèle
-    save_path = os.path.join(log_dir, 'model.pth')
+    save_path = os.path.join(dir, 'model.pth')
     torch.save(agent, save_path)
     print('Model saved in', save_path)

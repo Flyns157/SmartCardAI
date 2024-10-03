@@ -55,7 +55,7 @@ if __name__ == '__main__':
         default=100,
     )
     parser.add_argument(
-        '--log_dir',
+        '--dir',
         type=str,
         default='experiments/',
     )
@@ -67,15 +67,10 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--resume_training',
-        action='store_true',
-        help='Resume training from an existing model',
+        type=str,
+        default=None,
+        help='Resume training from an existing model with the specified name',
     )
-    # parser.add_argument(
-    #     '--model_path',
-    #     type=str,
-    #     default='experiments/model.pth',
-    #     help='Path to the existing model to resume training',
-    # )
     parser.add_argument(
         '--train_against_self',
         action='store_true',
