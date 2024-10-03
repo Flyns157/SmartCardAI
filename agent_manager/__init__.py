@@ -1,13 +1,10 @@
 import rlcard
-from rlcard import models
 from rlcard.agents import RandomAgent
 from rlcard.utils import (
     get_device,
     set_seed,
-    tournament,
     reorganize,
-    Logger,
-    plot_curve,
+    Logger
 )
 from rlcard.agents.human_agents.uno_human_agent import _print_action
 
@@ -15,84 +12,9 @@ import os
 import torch
 import random
 import time
+from .utils import load_model, plot_curve, tournament
 
-def load_model(model_path:str, env=None, position=None, device=None, weights_only:bool = False):
-    """
-    Charge un modèle d'agent à partir d'un chemin donné.
-
-    Args:
-        model_path (str): Le chemin du modèle à charger.
-        env (Environment, optional): L'environnement de jeu. Par défaut None.
-        position (int, optional): La position de l'agent dans l'environnement. Par défaut None.
-        device (str, optional): Le dispositif à utiliser (CPU ou GPU). Par défaut None.
-
-    Returns:
-        agent: L'agent chargé.
-    """
-    if os.path.isfile(model_path):  # Torch model
-        import torch
-        agent = torch.load(model_path, map_location=device, weights_only=weights_only)
-        agent.set_device(device)
-    elif os.path.isdir(model_path):  # CFR model
-        from rlcard.agents import CFRAgent
-        agent = CFRAgent(env, model_path)
-        agent.load()
-    elif model_path == 'random':  # Random model
-        from rlcard.agents import RandomAgent
-        agent = RandomAgent(num_actions=env.num_actions)
-    else:  # A model in the model zoo
-        from rlcard import models
-        agent = models.load(model_path).agents[position]
-
-    print(f'Model loaded from {model_path}')
-    return agent
-
-def evaluate_agents(agent, agent_bis=None, num_games=10000):
-    """
-    Évalue deux agents en jouant un nombre donné de parties.
-
-    Args:
-        agent: Le premier agent à évaluer.
-        agent_bis (optional): Le deuxième agent à évaluer. Par défaut, un agent aléatoire.
-        num_games (int, optional): Le nombre de parties à jouer. Par défaut 10000.
-
-    Returns:
-        tuple: Le nombre de victoires pour chaque agent.
-    """
-    # Créer l'environnement pour le jeu Uno
-    env = rlcard.make('uno')
-
-    if agent_bis is None:
-        agent_bis = RandomAgent(num_actions=env.num_actions)
-
-    # Associer les agents à l'environnement
-    env.set_agents([agent, agent_bis])
-
-    # Variables pour compter les résultats
-    first_agent_wins = 0
-    second_agent_wins = 0
-
-    # Lancer les parties
-    for _ in range(num_games):
-        # Exécuter une partie
-        trajectories, payoffs = env.run(is_training=False)
-
-        # Le payoff du premier joueur correspond à l'agent basé sur des règles
-        if payoffs[0] > 0:
-            first_agent_wins += 1
-        else:
-            second_agent_wins += 1
-
-    # Afficher les résultats finaux
-    print(f"Après {num_games} parties :")
-    print(f"Agent 1 a gagné {first_agent_wins} fois")
-    print(f"Agent 2 a gagné {second_agent_wins} fois")
-    print(f"Taux de victoire de l'agent 1 : {first_agent_wins / num_games:.2%}")
-    print(f"Taux de victoire de l'agent 2 : {second_agent_wins / num_games:.2%}")
-
-    return first_agent_wins, second_agent_wins
-
-def lets_play_uno(first_agent, second_agent):
+def lets_play_uno(first_agent, second_agent) -> int:
     """
     Joue deux parties de Uno entre deux agents.
 
@@ -127,11 +49,13 @@ def lets_play_uno(first_agent, second_agent):
         if payoffs[0] > 0:
             print('Player 0 win!')
             print(type(env.agents[0]))
+            return 0
         else:
             print('Player 1 win!')
             print(type(env.agents[1]))
-        print()
+            return 1
 
+# A implémenter prochainement {'pretrained_agent_ratio': 0.5, 'pretrained_model_path': 'experiments/pretrained_model.pth', 'start_eps': 1.0, 'end_eps': 0.1, 'decay_episodes': 1000, 'memory_size': 10000, 'batch_size': 32, 'save_every': None}
 def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training:str = None, train_against_self: bool = False, mlp_layers:list[int] = [64, 64], *args, **kwargs):
     """
     Entraîne un agent dans un environnement donné.
@@ -244,7 +168,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
         csv_path, fig_path = logger.csv_path, logger.fig_path
 
     # Tracer la courbe d'apprentissage
-    plot_curve(csv_path, fig_path, algorithm)
+    plot_curve(csv_path, fig_path, algorithm, display_avg=True)
 
     # Sauvegarder le modèle
     save_path = os.path.join(dir, 'model.pth')

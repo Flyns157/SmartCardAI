@@ -7,7 +7,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--env_type',
         type=str,
-        default='leduc-holdem',
+        default='uno',
         choices=[
             'blackjack',
             'leduc-holdem',
