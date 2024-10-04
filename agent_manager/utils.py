@@ -176,7 +176,7 @@ def plot_curve(csv_path: str, save_path: str, algorithm: str, display_avg: bool 
         fig, ax = plt.subplots()
         ax.plot(xs, ys, label=algorithm)
         if display_avg:
-            ax.plot([avg(xs)] * len(xs), ys, label=algorithm + "_avg")
+            ax.plot(xs, [avg(ys)] * len(xs), label=algorithm + "_avg")
         ax.set(xlabel='episode', ylabel='reward')
         ax.legend()
         ax.grid()
