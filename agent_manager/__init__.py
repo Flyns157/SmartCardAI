@@ -1,3 +1,6 @@
+name = "agent_manager"
+__version__ = "1.2.1"
+
 import rlcard
 from rlcard.agents import RandomAgent
 from rlcard.utils import (
