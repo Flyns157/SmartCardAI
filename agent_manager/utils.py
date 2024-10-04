@@ -92,6 +92,56 @@ def tournament(env: Env, num: int, display_results: bool = False):
 
     return payoffs, wins
 
+def rank_agents(agents, env_type='uno', num_games=1000, display_results:bool = False):
+    """
+    Evalue une liste d'agents dans un tournoi en mode round-robin et retourne un classement des agents avec leur taux de victoires.
+
+    Args:
+        agents (list): Liste des agents à évaluer.
+        env_type (str): Le type d'environnement à utiliser (par défaut 'uno').
+        num_games (int): Le nombre de parties à jouer pour chaque duel d'agents (par défaut 1000).
+        display_results (bool): Si les résultats doivent être affichés.
+
+    Returns:
+        list: Liste triée des agents avec leur taux de victoires sous forme de tuples (index de l'agent, taux de victoires).
+    """
+    # Créer l'environnement
+    env = rlcard.make(env_type)
+
+    # Créer un tableau pour stocker le nombre de victoires pour chaque agent
+    num_agents = len(agents)
+    wins = np.zeros(num_agents)
+
+    # Comparer chaque agent à tous les autres dans un tournoi round-robin
+    for i in range(num_agents):
+        for j in range(i + 1, num_agents):
+            # Associer les deux agents au jeu
+            env.set_agents([agents[i], agents[j]])
+            
+            # Jouer les parties
+            _, (first_agent_wins, second_agent_wins) = tournament(env=env, num=num_games)
+
+            # Mettre à jour le nombre de victoires
+            wins[i] += first_agent_wins
+            wins[j] += second_agent_wins
+
+    # Calculer le taux de victoires pour chaque agent
+    total_duels = num_games * (num_agents - 1)  # Chaque agent joue contre (num_agents - 1) autres agents
+    win_rates = wins / total_duels
+
+    # Créer une liste des agents avec leur taux de victoires
+    results = [(i, win_rate) for i, win_rate in enumerate(win_rates)]
+
+    # Trier par taux de victoires décroissant
+    results.sort(key=lambda x: x[1], reverse=True)
+
+    # Afficher le classement
+    if display_results:
+        print("Classement des agents :")
+        for rank, (agent_idx, win_rate) in enumerate(results, start=1):
+            print(f"Rank {rank}: Agent {agent_idx} - Taux de victoires : {win_rate:.2%}")
+
+    return results
 
 def agent_1v1(agent, agent_bis=None, num_games:int = 10000, env_type:str = 'uno'):
     """
