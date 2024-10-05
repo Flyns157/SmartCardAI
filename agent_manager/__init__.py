@@ -196,7 +196,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
                 )
 
             # Save intermediate models every few episodes
-            if episode % save_every == 0:
+            if save_every is not None and episode % save_every == 0:
                 save_path = os.path.join(dir, f'model_saves/model_{episode}.pth')
                 torch.save(agent, save_path)
                 print(f'Model saved at episode {episode}')
