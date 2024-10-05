@@ -1,7 +1,5 @@
 import os
 import argparse
-import time
-import random
 
 import torch
 
@@ -50,31 +48,14 @@ def train(args):
             q_mlp_layers=[64,64],
             device=device,
         )
-    
-    # Load existing model if resume_training is True
-    if args.resume_training and os.path.exists(args.model_path):
-        agent = torch.load(args.model_path)
-        print(f'Model loaded from {args.model_path}')
-    
     agents = [agent]
-    if args.train_against_self:
-        for _ in range(1, env.num_players):
-            agents.append(agent)
-    else:
-        for _ in range(1, env.num_players):
-            agents.append(RandomAgent(num_actions=env.num_actions))
-    
-    # Shuffle agents to choose the starting agent randomly
-    random.shuffle(agents)
+    for _ in range(1, env.num_players):
+        agents.append(RandomAgent(num_actions=env.num_actions))
     env.set_agents(agents)
 
     # Start training
-    start_time = time.time()
     with Logger(args.log_dir) as logger:
         for episode in range(args.num_episodes):
-
-            if args.max_time and (time.time() - start_time) > args.max_time:
-                break
 
             if args.algorithm == 'nfsp':
                 agents[0].sample_episode_policy()
@@ -82,10 +63,12 @@ def train(args):
             # Generate data from the environment
             trajectories, payoffs = env.run(is_training=True)
 
-            # Reorganize the data to be state, action, reward, next_state, done
+            # Reorganaize the data to be state, action, reward, next_state, done
             trajectories = reorganize(trajectories, payoffs)
 
             # Feed transitions into agent memory, and train the agent
+            # Here, we assume that DQN always plays the first position
+            # and the other players play randomly (if any)
             for ts in trajectories[0]:
                 agent.feed(ts)
 
@@ -111,7 +94,7 @@ def train(args):
     print('Model saved in', save_path)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser("DQN/NFSP in RLCard")
+    parser = argparse.ArgumentParser("DQN/NFSP example in RLCard")
     parser.add_argument(
         '--env',
         type=str,
@@ -165,36 +148,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='experiments/',
-    )
-    parser.add_argument(
-        '--max_time',
-        type=int,
-        default=None,
-        help='Maximum training time in seconds',
-    )
-    parser.add_argument(
-        '--resume_training',
-        action='store_true',
-        help='Resume training from an existing model',
-    )
-    parser.add_argument(
-        '--model_path',
-        type=str,
-        default='experiments/model.pth',
-        help='Path to the existing model to resume training',
-    )
-    parser.add_argument(
-        '--train_against_self',
-        action='store_true',
-        help='Train the agent against a copy of itself',
+        default='experiments/leduc_holdem_dqn_result/',
     )
 
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
     train(args)
-else:
-    os.environ["CUDA_VISIBLE_DEVICES"] = ''
-    from argparse import Namespace
-    train(Namespace(env='uno', algorithm='dqn', cuda='', seed=42, num_episodes=5000, num_eval_games=2000, evaluate_every=100, log_dir='experiments/', max_time=600, resume_training=True, model_path='experiments/model.pth', train_against_self=False))
