@@ -1,5 +1,5 @@
 name = "agent_manager"
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 
 import rlcard
 from rlcard.agents import RandomAgent
@@ -60,27 +60,36 @@ def lets_play_uno(first_agent, second_agent) -> int:
             print(type(env.agents[1]))
             return 1
 
-def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training:str = None, train_against_self: bool = False, mlp_layers:list[int] = [64, 64], pretrained_agent_ratio:float = 0.5, pretrained_model_path:str = 'experiments/pretrained_model.pth', start_eps:float = 1.0, end_eps:float = 0.1, decay_episodes:int = 1000, memory_size:int = 10000, batch_size:int = 32, save_every:int = None, *args, **kwargs):
+def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training: str = None, train_against_self: bool = False, mlp_layers: list[int] = [64, 64], pretrained_agent_ratio: float = 0.5, pretrained_model_path: str = 'experiments/pretrained_model.pth', start_eps: float = 1.0, end_eps: float = 0.1, decay_episodes: int = 1000, memory_size: int = 10000, batch_size: int = 32, save_every: int = None, *args, **kwargs):
     """
-    Entraîne un agent dans un environnement donné.
+    Entraîne un agent en utilisant un algorithme donné dans un environnement spécifique.
 
     Args:
-        env_type (str): Le type d'environnement.
-        algorithm (str): L'algorithme à utiliser pour l'entraînement.
-        seed (int): La graine pour la reproductibilité.
-        num_episodes (int, optional): Le nombre d'épisodes d'entraînement. Par défaut 5000.
-        num_eval_games (int, optional): Le nombre de parties d'évaluation. Par défaut 2000.
-        evaluate_every (int, optional): La fréquence d'évaluation. Par défaut 100.
-        dir (str, optional): Le répertoire de journalisation et de sauvegarde. Par défaut 'experiments/'.
-        max_time (int, optional): Le temps maximum d'entraînement en secondes. Par défaut 600.
-        resume_training (str, optional): Reprendre l'entraînement à partir d'un modèle existant si le nom est spécifié. Par défaut None.
-        train_against_self (bool, optional): Entraîner l'agent contre lui-même. Par défaut False.
-        *args: Arguments supplémentaires.
-        **kwargs: Arguments supplémentaires.
+        env_type (str): Le type d'environnement (par exemple 'uno').
+        algorithm (str): L'algorithme utilisé pour l'entraînement (par exemple 'dqn', 'nfsp').
+        seed (int): La graine aléatoire pour garantir la reproductibilité.
+        num_episodes (int, optional): Le nombre d'épisodes pour l'entraînement (par défaut 5000).
+        num_eval_games (int, optional): Le nombre de jeux à jouer lors des évaluations (par défaut 2000).
+        evaluate_every (int, optional): La fréquence d'évaluation en nombre d'épisodes (par défaut 100).
+        dir (str, optional): Le répertoire où enregistrer les résultats et modèles (par défaut 'experiments/').
+        max_time (int, optional): Le temps maximum d'entraînement en secondes (par défaut 600).
+        resume_training (str, optional): Nom du modèle à partir duquel reprendre l'entraînement (par défaut None).
+        train_against_self (bool, optional): Si True, entraîne l'agent contre lui-même (par défaut False).
+        mlp_layers (list[int], optional): La structure des couches du MLP pour les agents DQN ou NFSP (par défaut [64, 64]).
+        pretrained_agent_ratio (float, optional): Proportion d'agents pré-entrainés à utiliser comme adversaires (par défaut 0.5).
+        pretrained_model_path (str, optional): Chemin vers le modèle pré-entraîné (par défaut 'experiments/pretrained_model.pth').
+        start_eps (float, optional): Valeur initiale d'epsilon pour epsilon-greedy (par défaut 1.0).
+        end_eps (float, optional): Valeur finale d'epsilon après le déclin (par défaut 0.1).
+        decay_episodes (int, optional): Le nombre d'épisodes sur lequel epsilon décroît (par défaut 1000).
+        memory_size (int, optional): Taille de la mémoire pour l'apprentissage par mini-lots (par défaut 10000).
+        batch_size (int, optional): Taille des mini-lots pour l'entraînement (par défaut 32).
+        save_every (int, optional): Fréquence d'enregistrement du modèle en nombre d'épisodes (par défaut None).
+        *args, **kwargs: Arguments supplémentaires.
 
     Returns:
         None
     """
+
     # Vérifier si le GPU est disponible
     device = get_device()
 
