@@ -6,6 +6,18 @@ from rlcard.envs import Env
 import rlcard
 import numpy as np
 
+class EpsGreedyDecay:
+    """ Class to handle epsilon-greedy decay for exploration in DQN """
+    def __init__(self, start_eps=1.0, end_eps=0.1, decay_episodes=1000):
+        self.start_eps = start_eps
+        self.end_eps = end_eps
+        self.decay_episodes = decay_episodes
+        self.eps = start_eps
+
+    def get_epsilon(self, episode):
+        self.eps = max(self.end_eps, self.start_eps - (self.start_eps - self.end_eps) * episode / self.decay_episodes)
+        return self.eps
+
 def load_model(model_path:str, env:Env = None, position:int = None, device:str = None, weights_only:bool = False):
     """
     Charge un modèle d'agent à partir d'un chemin donné.

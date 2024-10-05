@@ -1,5 +1,5 @@
 name = "agent_manager"
-__version__ = "1.2.2"
+__version__ = "1.3.0"
 
 import rlcard
 from rlcard.agents import RandomAgent
@@ -16,7 +16,8 @@ import os
 import torch
 import random
 import time
-from .utils import load_model, plot_curve
+from collections import deque
+from .utils import load_model, plot_curve, EpsGreedyDecay
 
 def lets_play_uno(first_agent, second_agent) -> int:
     """
@@ -59,8 +60,7 @@ def lets_play_uno(first_agent, second_agent) -> int:
             print(type(env.agents[1]))
             return 1
 
-# A implémenter prochainement {'pretrained_agent_ratio': 0.5, 'pretrained_model_path': 'experiments/pretrained_model.pth', 'start_eps': 1.0, 'end_eps': 0.1, 'decay_episodes': 1000, 'memory_size': 10000, 'batch_size': 32, 'save_every': None}
-def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training:str = None, train_against_self: bool = False, mlp_layers:list[int] = [64, 64], *args, **kwargs):
+def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training:str = None, train_against_self: bool = False, mlp_layers:list[int] = [64, 64], pretrained_agent_ratio:float = 0.5, pretrained_model_path:str = 'experiments/pretrained_model.pth', start_eps:float = 1.0, end_eps:float = 0.1, decay_episodes:int = 1000, memory_size:int = 10000, batch_size:int = 32, save_every:int = None, *args, **kwargs):
     """
     Entraîne un agent dans un environnement donné.
 
@@ -109,7 +109,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
         agent = NFSPAgent(
             num_actions=env.num_actions,
             state_shape=env.state_shape[0],
-            hidden_layers_sizes=[64, 64],
+            hidden_layers_sizes=mlp_layers,
             q_mlp_layers=[64, 64],
             device=device,
         )
@@ -130,14 +130,21 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
             agents.append(agent)
     else:
         for _ in range(1, env.num_players):
-            agents.append(RandomAgent(num_actions=env.num_actions))
-            # agents.append(UNORuleModelV2().agents[0])
+            # Train against a mix of random agents and previously trained versions of the main agent
+            if random.random() < pretrained_agent_ratio:
+                agents.append(torch.load(pretrained_model_path))  # Load less trained agent versions
+            else:
+                # agents.append(UNORuleModelV2().agents[0])
+                agents.append(RandomAgent(num_actions=env.num_actions))
 
     # Mélanger les agents pour choisir l'agent de départ au hasard
     random.shuffle(agents)
     env.set_agents(agents)
 
-    # Commencer l'entraînement
+    # Initialize replay memory for mini-batch training
+    memory = deque(maxlen=memory_size)
+
+    # Start training
     start_time = time.time()
     with Logger(dir) as logger:
         for episode in range(num_episodes):
@@ -156,9 +163,19 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
 
             # Alimenter les transitions dans la mémoire de l'agent et entraîner l'agent
             for ts in trajectories[0]:
-                agent.feed(ts)
+                memory.append(ts)
 
-            # Évaluer la performance. Jouer avec des agents aléatoires.
+            # If enough experiences, perform mini-batch updates
+            if len(memory) >= batch_size:
+                mini_batch = random.sample(memory, batch_size)
+                for ts in mini_batch:
+                    agent.feed(ts)
+
+            # Dynamically adjust epsilon for exploration
+            if algorithm == 'dqn':
+                agent.epsilon = eps_decay.get_epsilon(episode)
+
+            # Evaluate the performance. Play with random agents.
             if episode % evaluate_every == 0:
                 logger.log_performance(
                     episode,
@@ -167,6 +184,12 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
                         num_eval_games,
                     )[0]
                 )
+
+            # Save intermediate models every few episodes
+            if episode % save_every == 0:
+                save_path = os.path.join(dir, f'model_saves/model_{episode}.pth')
+                torch.save(agent, save_path)
+                print(f'Model saved at episode {episode}')
 
         # Obtenir les chemins
         csv_path, fig_path = logger.csv_path, logger.fig_path
@@ -177,4 +200,4 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
     # Sauvegarder le modèle
     save_path = os.path.join(dir, 'model.pth')
     torch.save(agent, save_path)
-    print('Model saved in', save_path)
+    print('Final model saved in', save_path)
