@@ -1,8 +1,8 @@
-# Agent d'apprentissage par renforcement pour le jeu UNO
+# SmartCardAI
 
-Ce projet implémente et compare différents agents d'intelligence artificielle pour jouer au jeu de cartes UNO en utilisant des techniques d'apprentissage par renforcement.
+## Description
 
-**Remarque :** *Ce projet fonctionne aussi pour les autre environnement de rlcard dans __la plus part des cas__.*
+SmartCardAI est un projet de module python permettant de créer et gérer des agents pour les environnements de la bibliothèque RLCard. Ce module se concentrerais sur les agents de types DQN, NFSP et DMC. Le but est de pouvoir expérimenter de manière simple et sans faire l'impasse sur les différentes méthodes d'apprentissages existantes en les implémentant dans le module.
 
 ## Fonctionnalités
 
@@ -32,34 +32,32 @@ Ce projet implémente et compare différents agents d'intelligence artificielle 
    pip install -r requirements.txt
    ```
 
-## Utilisation
+## Structure cible du projet
 
-### Entraînement d'un agent
-
-Pour entraîner un agent, utilisez la commande suivante :
-
-```shell
-python -m agent_manager --env_type uno --algorithm dqn --num_episodes 5000
 ```
+SmartCardAI/
+│
+├── agents/
+│   ├── __init__.py
+│   ├── dqn_agent.py
+│   ├── nfsp_agent.py
+│   └── dmc_agent.py
+│
+├── environments/
+│   ├── __init__.py
+│   └── rlcard_env.py
+│
+├── experiments/
+│   ├── __init__.py
+│   └── experiment_manager.py
+│
+├── utils/
+│   ├── __init__.py
+│   └── logger.py
+│
+└── main.py
 
-Options disponibles :
-
-* `--env_type` : Type d'environnement (par défaut : 'uno')
-* `--algorithm` : Algorithme à utiliser ('dqn' ou 'nfsp')
-* `--num_episodes` : Nombre d'épisodes d'entraînement
-* `--cuda` : Spécifiez le GPU à utiliser (laissez vide pour CPU)
-* `--resume_training` : Reprendre l'entraînement à partir d'un modèle existant
-* `--train_against_self` : Entraîner l'agent contre une copie de lui-même
-
-### Évaluation des agents
-
-Pour évaluer les performances des agents, utilisez le script dans `test.ipynb`.
-
-## Structure du projet
-
-* `agent_manager/` : Le module python contenant les implémentations des agents et les fonctions d'entraînement
-* `experiments/` : Dossier de sortie par déffaut pour les logs et les modèles entraînés
-* `test.ipynb` : Notebook Jupyter pour tester et comparer les agents
+```
 
 ## Contribution
 
