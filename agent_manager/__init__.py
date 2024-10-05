@@ -181,8 +181,9 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
                     agent.feed(ts)
 
             # Dynamically adjust epsilon for exploration
-            if algorithm == 'dqn':
-                agent.epsilon = eps_decay.get_epsilon(episode)
+            # TODO : ajuster le code afin de pouvoir faire un équivalent
+            # if algorithm == 'dqn':
+            #     agent.epsilon = eps_decay.get_epsilon(episode)
 
             # Evaluate the performance. Play with random agents.
             if episode % evaluate_every == 0:
