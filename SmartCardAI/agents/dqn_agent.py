@@ -1,56 +1,57 @@
+import numpy as np
+import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
+from ..utils import ReplayMemory
 
 class DQNAgent:
-    def __init__(self, state_size, action_size, hidden_size=64, learning_rate=0.001, gamma=0.99, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995):
+    def __init__(self, state_size, action_size, learning_rate=0.001, gamma=0.99, epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.01):
         self.state_size = state_size
         self.action_size = action_size
-        self.hidden_size = hidden_size
-        self.learning_rate = learning_rate
+        self.memory = ReplayMemory(10000)
         self.gamma = gamma
         self.epsilon = epsilon
-        self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+        self.learning_rate = learning_rate
+
         self.model = self._build_model()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        self.criterion = nn.MSELoss()
-        self.memory = []
 
     def _build_model(self):
+        # Simple neural network for DQN
         return nn.Sequential(
-            nn.Linear(self.state_size, self.hidden_size),
+            nn.Linear(self.state_size, 64),
             nn.ReLU(),
-            nn.Linear(self.hidden_size, self.hidden_size),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(self.hidden_size, self.action_size)
+            nn.Linear(64, self.action_size)
         )
 
-    def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
-
-    def act(self, state):
+    def select_action(self, state):
         if np.random.rand() <= self.epsilon:
-            return np.random.choice(self.action_size)
+            return random.randrange(self.action_size)
         state = torch.FloatTensor(state)
         q_values = self.model(state)
         return torch.argmax(q_values).item()
 
-    def replay(self, batch_size):
+    def train(self, batch_size=32):
         if len(self.memory) < batch_size:
             return
-        minibatch = np.random.choice(self.memory, batch_size)
-        for state, action, reward, next_state, done in minibatch:
+        
+        experiences = self.memory.sample(batch_size)
+        for experience in experiences:
+            state, action, reward, next_state, done = experience
+
             target = reward
             if not done:
-                next_state = torch.FloatTensor(next_state)
-                target += self.gamma * torch.max(self.model(next_state)).item()
-            state = torch.FloatTensor(state)
-            q_values = self.model(state)
-            target_f = q_values.clone()
+                target += self.gamma * torch.max(self.model(torch.FloatTensor(next_state))).item()
+            
+            target_f = self.model(torch.FloatTensor(state))
             target_f[action] = target
-            loss = self.criterion(q_values, target_f)
+            
+            loss = nn.MSELoss()(target_f, torch.FloatTensor([target]))
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -58,8 +59,5 @@ class DQNAgent:
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-    def save(self, filepath):
-        torch.save(self.model.state_dict(), filepath)
-
-    def load(self, filepath):
-        self.model.load_state_dict(torch.load(filepath))
+    def remember(self, state, action, reward, next_state, done):
+        self.memory.push(state, action, reward, next_state, done)
