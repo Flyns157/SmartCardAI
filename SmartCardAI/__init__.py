@@ -1,8 +1,10 @@
-name = "SmartCardAI"
-__version__ = "2.1.6"
-
-import rlcard
-from rlcard.agents import RandomAgent
+from .utils import load_model, plot_curve, EpsGreedyDecay
+from collections import deque
+import time
+import random
+import torch
+import os
+from rlcard.agents.human_agents.uno_human_agent import _print_action
 from rlcard.utils import (
     get_device,
     set_seed,
@@ -10,21 +12,13 @@ from rlcard.utils import (
     tournament,
     Logger
 )
-from rlcard.agents.human_agents.uno_human_agent import _print_action
-
-import os
-import torch
-import random
-import time
-from collections import deque
-from .utils import load_model, plot_curve, EpsGreedyDecay
+from rlcard.agents import RandomAgent
+import rlcard
+name = "SmartCardAI"
+__version__ = "2.2.1"
 
 
-
-
-# The next code is deprecated, it will soon no longer be functional 
-
-
+# The next code is deprecated, it will soon no longer be functional
 
 
 def lets_play_uno(first_agent, second_agent) -> int:
@@ -49,7 +43,7 @@ def lets_play_uno(first_agent, second_agent) -> int:
         # imprimer l'action des autres joueurs
         final_state = trajectories[0][-1]
         action_record = final_state['action_record']
-        state = final_state['raw_obs']
+        # state = final_state['raw_obs']
         _action_list = []
         for i in range(1, len(action_record) + 1):
             _action_list.insert(0, action_record[-i])
@@ -67,6 +61,7 @@ def lets_play_uno(first_agent, second_agent) -> int:
             print('Player 1 win!')
             print(type(env.agents[1]))
             return 1
+
 
 def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training: str = None, train_against_self: bool = False, mlp_layers: list[int] = [64, 64], pretrained_agent_ratio: float = 0.5, pretrained_model_path: str = 'experiments/pretrained_model.pth', start_eps: float = 1.0, end_eps: float = 0.1, decay_episodes: int = 1000, memory_size: int = 10000, batch_size: int = 32, save_every: int = None, *args, **kwargs):
     """
@@ -114,7 +109,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
 
     # Initialiser l'agent et utiliser des agents aléatoires comme adversaires
     if algorithm == 'dqn':
-        from rlcard.agents import DQNAgent
+        from .agents import DQNAgent
         agent = DQNAgent(
             num_actions=env.num_actions,
             state_shape=env.state_shape[0],
@@ -122,7 +117,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
             device=device,
         )
     elif algorithm == 'nfsp':
-        from rlcard.agents import NFSPAgent
+        from .agents import NFSPAgent
         agent = NFSPAgent(
             num_actions=env.num_actions,
             state_shape=env.state_shape[0],
@@ -138,7 +133,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
             agent = load_model(model_path=model_path, device=device)
         else:
             print(f"/!\\ The {resume_training} model don't exist")
-            print(f"Start training a new model ...")
+            print("Start training a new model ...")
             time.sleep(3)
 
     agents = [agent]
@@ -149,7 +144,8 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
         for _ in range(1, env.num_players):
             # Train against a mix of random agents and previously trained versions of the main agent
             if random.random() < pretrained_agent_ratio:
-                agents.append(torch.load(pretrained_model_path))  # Load less trained agent versions
+                # Load less trained agent versions
+                agents.append(torch.load(pretrained_model_path))
             else:
                 # agents.append(UNORuleModelV2().agents[0])
                 agents.append(RandomAgent(num_actions=env.num_actions))
@@ -205,7 +201,8 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
 
             # Save intermediate models every few episodes
             if save_every is not None and episode % save_every == 0:
-                save_path = os.path.join(dir, f'model_saves/model_{episode}.pth')
+                save_path = os.path.join(
+                    dir, f'model_saves/model_{episode}.pth')
                 torch.save(agent, save_path)
                 print(f'Model saved at episode {episode}')
 

@@ -43,13 +43,14 @@ def load_model(model_path:str, env:Env = None, position:int = None, device:str =
         agent = torch.load(model_path, map_location=device, weights_only=weights_only)
         agent.set_device(device)
     elif os.path.isdir(model_path):  # CFR model
-        from rlcard.agents import CFRAgent
+        from SmartCardAI.agents import CFRAgent
         agent = CFRAgent(env, model_path)
         agent.load()
     elif model_path == 'random':  # Random model
         from rlcard.agents import RandomAgent
         agent = RandomAgent(num_actions=env.num_actions)
     else:  # A model in the model zoo
+        # TODO : add pretrained agents zoo of SmartCardAI
         from rlcard import models
         agent = models.load(model_path).agents[position]
 
@@ -257,3 +258,43 @@ def plot_curve(csv_path: str, save_path: str, algorithm: str, display_avg: bool 
         fig.savefig(save_path)
 
         return fig
+
+
+
+# Deprecated
+
+class EpsGreedyDecay:
+    """
+    Gère le déclin d'epsilon pour la stratégie epsilon-greedy utilisée dans l'exploration des agents DQN.
+
+    Args:
+        start_eps (float): La valeur initiale d'epsilon (par défaut 1.0).
+        end_eps (float): La valeur finale d'epsilon après déclin (par défaut 0.1).
+        decay_episodes (int): Le nombre d'épisodes sur lesquels epsilon décroît (par défaut 1000).
+
+    Attributes:
+        eps (float): La valeur actuelle d'epsilon, initialisée à `start_eps`.
+
+    Methods:
+        get_epsilon(episode: int) -> float:
+            Calcule et retourne la valeur actuelle d'epsilon en fonction de l'épisode en cours.
+    """
+
+    def __init__(self, start_eps=1.0, end_eps=0.1, decay_episodes=1000):
+        self.start_eps = start_eps
+        self.end_eps = end_eps
+        self.decay_episodes = decay_episodes
+        self.eps = start_eps
+
+    def get_epsilon(self, episode):
+        """
+        Calcule la valeur actuelle d'epsilon en fonction de l'épisode.
+
+        Args:
+            episode (int): Le numéro de l'épisode actuel.
+
+        Returns:
+            float: La valeur actuelle d'epsilon, décroit progressivement de start_eps à end_eps.
+        """
+        self.eps = max(self.end_eps, self.start_eps - (self.start_eps - self.end_eps) * episode / self.decay_episodes)
+        return self.eps

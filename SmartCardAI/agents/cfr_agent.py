@@ -105,7 +105,7 @@ class CFRAgent(object):
         for obs in self.regrets:
             self.policy[obs] = self.regret_matching(obs)
 
-    def regret_matching(self, obs:str)->np.NDArray[float]:
+    def regret_matching(self, obs:str)->np.ndarray[float]:
         ''' Apply regret matching
 
         Args:
@@ -123,7 +123,7 @@ class CFRAgent(object):
                 action_probs[action] = 1.0 / self.env.num_actions
         return action_probs
 
-    def action_probs(self, obs:str, legal_actions:list, policy:dict)->tuple[np.array[float],list[int]]:
+    def action_probs(self, obs: str, legal_actions: list, policy: dict) -> tuple[np.ndarray, list[int]]:
         ''' Obtain the action probabilities of the current state
 
         Args:

@@ -47,7 +47,7 @@ class NFSPAgent(object):
                     q_batch_size:int=32,
                     q_train_every:int=1,
                     q_mlp_layers:list[int]=None,
-                    evaluate_with:'best_response'|'average_policy'='average_policy',
+                    evaluate_with:'best_response|average_policy'='average_policy',
                     device:torch.device=None,
                     save_path:str=None,
                     save_every:int|float=float('inf'))->None:
