@@ -1,12 +1,18 @@
 # SmartCardAI
 
+/!\ Tis document is deprecated !
+
 ## Description
 
-SmartCardAI est un projet de module python permettant de créer et gérer des agents pour les environnements de la bibliothèque RLCard. Ce module se concentrerais sur les agents de types DQN, NFSP et DMC. Le but est de pouvoir expérimenter de manière simple et sans faire l'impasse sur les différentes méthodes d'apprentissages existantes en les implémentant dans le module.
+SmartCardAI est un projet de module python permettant d'améliorer la création et la gestion d'agents pour les environnements de la bibliothèque RLCard.
+
+Ce module se concentre sur les agents de types Rules, DQN, NFSP et DMC.
+
+Le but est de pouvoir expérimenter de manière simple et sans faire l'impasse sur les différentes méthodes d'apprentissages existantes en les implémentant dans le module.
 
 ## Fonctionnalités
 
-* Entraînement d'agents RL (DQN, NFSP) pour jouer à UNO
+* Entraînement d'agents RL (DQN, NFSP)
 * Évaluation et comparaison des performances des agents
 * Possibilité de jouer contre les agents entraînés
 * Support pour l'entraînement sur GPU (CUDA)
