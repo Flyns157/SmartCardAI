@@ -117,16 +117,23 @@ class UNORuleModelV2(Model):
         '''
         return True
 
+
 class UNORuleAgentV4(object):
-    ''' UNO Rule agent version 4 with chaining wild cards and reactive color changes
+    ''' UNO Rule agent version 6 with enhanced strategies:
+        - Defensive use of +2 and +4
+        - Chaining wild cards
+        - Reactive color changes
+        - Detect and counter frequently played colors by opponents
+        - Prioritize playing the most abundant color in hand
     '''
 
     def __init__(self):
         self.use_raw = True
         self.prev_color = None  # To track the previous color of the game
+        self.color_history = deque(maxlen=3)  # To track the last 3 colors played
 
     def step(self, state):
-        ''' Step function implementing the strategy
+        ''' Step function implementing the enhanced strategy
 
         Args:
             state (dict): Raw state from the game
@@ -136,49 +143,70 @@ class UNORuleAgentV4(object):
         '''
         legal_actions = state['raw_legal_actions']
         state = state['raw_obs']
-        
+
         if 'draw' in legal_actions:
             return 'draw'
 
         hand = state['hand']
-        others_hand_size = min([len(hand) for hand in state['others_hand']])
+        others_hand_sizes = [len(h) for h in state['others_hand']]
+        min_others_hand_size = min(others_hand_sizes) if others_hand_sizes else 0
         top_card = state['top_card']
         current_color = top_card[0]  # The color of the top card in play
 
-        # Keep +2 and +4 for defensive use unless absolutely necessary
+        # Update color history
+        if current_color in ['R', 'G', 'B', 'Y']:
+            self.color_history.append(current_color)
+
+        # 1. Défense : Garder +2 et +4 sauf si adversaire proche de gagner
         for action in legal_actions:
             if 'draw_2' in action or 'wild_draw_4' in action:
-                # If the opponent has few cards, play +2 or +4 as an attack
-                if others_hand_size <= 2:
+                if min_others_hand_size <= 2:
                     return action
-                # Otherwise, keep them for later
+                # Sinon, garder pour défense
                 continue
 
-        # Chain wild cards if multiple are present
-        wild_cards = [action for action in legal_actions if 'wild' in action]
-        if len(wild_cards) > 1:
-            return np.random.choice(wild_cards)  # Chain wild cards if possible
+        # 2. Utiliser les jokers pour enchaîner
+        wild_actions = [action for action in legal_actions if 'wild' in action and 'draw' not in action]
+        if wild_actions:
+            return np.random.choice(wild_actions)
 
-        # Change color if the opponent just changed it
-        if self.prev_color and self.prev_color != current_color:
-            # Attempt to change to a different color
+        # 3. Détecter les couleurs surutilisées par les adversaires
+        overused_color = self.detect_overused_color(state)
+        if overused_color:
+            # Tenter de changer de couleur pour contrer
             available_colors = self.count_colors(self.filter_wild(hand))
-            new_color = max(available_colors, key=available_colors.get)
+            # Choisir la couleur la moins courante dans la main
+            new_color = self.least_common_color(available_colors)
             filtered_actions = [action for action in legal_actions if action.startswith(new_color)]
             if filtered_actions:
                 return np.random.choice(filtered_actions)
-        
-        # Default to matching the dominant color or playing any valid card
-        color_nums = self.count_colors(self.filter_wild(hand))
-        dominant_color = max(color_nums, key=color_nums.get)
-        filtered_actions = [action for action in legal_actions if action.startswith(dominant_color)]
-        if filtered_actions:
-            return np.random.choice(filtered_actions)
+            # Si impossible, continuer
 
-        # Play a random valid action if no better option
+        # 4. Changer de couleur en réponse à l'adversaire
+        if self.prev_color and self.prev_color != current_color:
+            # Tenter de changer à une couleur différente
+            available_colors = self.count_colors(self.filter_wild(hand))
+            new_color = self.most_common_color(available_colors)
+            filtered_actions = [action for action in legal_actions if action.startswith(new_color)]
+            if filtered_actions:
+                return np.random.choice(filtered_actions)
+
+        # 5. Prioriser la couleur dominante dans la main
+        color_nums = self.count_colors(self.filter_wild(hand))
+        if color_nums:
+            dominant_color = self.most_common_color(color_nums)
+            filtered_actions = [action for action in legal_actions if action.startswith(dominant_color)]
+            if filtered_actions:
+                return np.random.choice(filtered_actions)
+
+        # 6. Jouer une carte Wild si aucune autre option n'est meilleure
+        if wild_actions:
+            return np.random.choice(wild_actions)
+
+        # 7. Jouer une carte aléatoire restante
         action = np.random.choice(self.filter_wild(legal_actions))
 
-        # Update the previous color
+        # Mettre à jour la couleur précédente
         self.prev_color = current_color
         return action
 
@@ -225,9 +253,62 @@ class UNORuleAgentV4(object):
             color_nums[color] += 1
 
         return color_nums
-    
+
+    def detect_overused_color(self, state):
+        ''' Detect if a color is being overused by opponents
+
+        Args:
+            state (dict): Raw state from the game
+
+        Returns:
+            overused_color (str or None): The color that is overused, or None
+        '''
+        # Analyse la color_history pour détecter une surutilisation
+        color_counts = {}
+        for color in self.color_history:
+            if color not in color_counts:
+                color_counts[color] = 0
+            color_counts[color] += 1
+
+        # Définir un seuil pour considérer une couleur comme surutilisée
+        for color, count in color_counts.items():
+            if count >= 2:  # Seuil de 2 fois
+                return color
+
+        return None
+
+    def least_common_color(self, available_colors):
+        ''' Choisir la couleur la moins courante dans la main
+
+        Args:
+            available_colors (dict): Un dictionnaire des couleurs et leur nombre
+
+        Returns:
+            color (str): La couleur la moins courante
+        '''
+        if not available_colors:
+            return np.random.choice(['R', 'G', 'B', 'Y'])  # Choix aléatoire si pas de cartes
+
+        # Retourner la couleur avec le moins de cartes
+        return min(available_colors, key=available_colors.get)
+
+    def most_common_color(self, available_colors):
+        ''' Choisir la couleur la plus courante dans la main
+
+        Args:
+            available_colors (dict): Un dictionnaire des couleurs et leur nombre
+
+        Returns:
+            color (str): La couleur la plus courante
+        '''
+        if not available_colors:
+            return np.random.choice(['R', 'G', 'B', 'Y'])  # Choix aléatoire si pas de cartes
+
+        # Retourner la couleur avec le plus de cartes
+        return max(available_colors, key=available_colors.get)
+
 class UNORuleModelV4(Model):
-    ''' UNO Rule Model version 4
+    ''' UNO Rule Model version 6
     '''
 
     def __init__(self):
@@ -235,8 +316,8 @@ class UNORuleModelV4(Model):
         '''
         env = rlcard.make('uno')
 
-        # Load the new rule-based agent
-        rule_agent = UNORuleAgentV4()
+        # Charger l'agent amélioré
+        rule_agent = UNORuleAgentV6()
         self.rule_agents = [rule_agent for _ in range(env.num_players)]
 
     @property
