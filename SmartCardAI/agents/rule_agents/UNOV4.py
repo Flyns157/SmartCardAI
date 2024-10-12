@@ -193,7 +193,7 @@ class UNORuleAgentV4(object):
         return max(available_colors, key=available_colors.get)
 
 class UNORuleModelV4(Model):
-    ''' UNO Rule Model version 6
+    ''' UNO Rule Model version 4
     '''
 
     def __init__(self):
