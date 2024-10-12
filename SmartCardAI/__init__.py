@@ -115,6 +115,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
             state_shape=env.state_shape[0],
             mlp_layers=mlp_layers,
             device=device,
+            **kwargs
         )
     elif algorithm == 'nfsp':
         from .agents import NFSPAgent
@@ -124,6 +125,7 @@ def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, nu
             hidden_layers_sizes=mlp_layers,
             q_mlp_layers=[64, 64],
             device=device,
+            **kwargs
         )
 
     # Charger un modèle existant si resume_training contient quelque chose

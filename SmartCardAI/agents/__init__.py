@@ -6,7 +6,7 @@ installed_packages = [r.decode().split('==')[0] for r in reqs.split()]
 
 from .cfr_agent import CFRAgent
 from .dqn_agent import DQNAgent
-from .dqn_agent import DuelingDQNAgent
+from .dueling_dqn_agent import DuelingDQNAgent
 from .nfsp_agent import NFSPAgent
 # from .dmc_agent import DMCAgent
 
