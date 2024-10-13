@@ -36,7 +36,7 @@ class UNORuleAgentV4(object):
         hand = state['hand']
         others_hand_sizes = [state['num_cards'][i] for i in range(state['num_players']) if  i != state['current_player']]
         min_others_hand_size = min(others_hand_sizes) if others_hand_sizes else 0
-        top_card = state['played_cards'][-1]
+        top_card = state['target'] # ou state['played_cards'][-1]
         current_color = top_card[0]  # The color of the top card in play
 
         # Update color history
