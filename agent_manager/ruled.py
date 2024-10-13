@@ -2,6 +2,8 @@ import numpy as np
 
 import rlcard
 from rlcard.models.model import Model
+from collections import deque
+ 
 
 class UNORuleAgentV2(object):
     ''' UNO Rule agent version 2
@@ -162,8 +164,6 @@ class UNORuleAgentV4(object):
             if 'draw_2' in action or 'wild_draw_4' in action:
                 if min_others_hand_size <= 2:
                     return action
-                # Sinon, garder pour défense
-                continue
 
         # 2. Utiliser les jokers pour enchaîner
         wild_actions = [action for action in legal_actions if 'wild' in action and 'draw' not in action]
@@ -317,7 +317,7 @@ class UNORuleModelV4(Model):
         env = rlcard.make('uno')
 
         # Charger l'agent amélioré
-        rule_agent = UNORuleAgentV6()
+        rule_agent = UNORuleAgentV4()
         self.rule_agents = [rule_agent for _ in range(env.num_players)]
 
     @property
