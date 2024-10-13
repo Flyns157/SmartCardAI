@@ -34,9 +34,9 @@ class UNORuleAgentV4(object):
             return 'draw'
 
         hand = state['hand']
-        others_hand_sizes = [len(h) for h in state['others_hand']]
+        others_hand_sizes = [state['num_cards'][i] for i in range(state['num_players']) if  i != state['current_player']]
         min_others_hand_size = min(others_hand_sizes) if others_hand_sizes else 0
-        top_card = state['top_card']
+        top_card = state['played_cards'][-1]
         current_color = top_card[0]  # The color of the top card in play
 
         # Update color history
@@ -48,7 +48,6 @@ class UNORuleAgentV4(object):
             if 'draw_2' in action or 'wild_draw_4' in action:
                 if min_others_hand_size <= 2:
                     return action
-                # Sinon, garder pour défense
 
         # 2. Utiliser les jokers pour enchaîner
         wild_actions = [action for action in legal_actions if 'wild' in action and 'draw' not in action]
