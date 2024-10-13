@@ -1,3 +1,6 @@
+name = "SmartCardAI"
+__version__ = "2.2.5"
+
 from .utils import load_model, plot_curve, EpsGreedyDecay
 from collections import deque
 import time
@@ -14,8 +17,6 @@ from rlcard.utils import (
 )
 from rlcard.agents import RandomAgent
 import rlcard
-name = "SmartCardAI"
-__version__ = "2.2.1"
 
 
 # The next code is deprecated, it will soon no longer be functional
@@ -63,7 +64,27 @@ def lets_play_uno(first_agent, second_agent) -> int:
             return 1
 
 
-def train(env_type: str, algorithm: str, seed: int, num_episodes: int = 5000, num_eval_games: int = 2000, evaluate_every: int = 100, dir: str = 'experiments/', max_time: int = 600, resume_training: str = None, train_against_self: bool = False, mlp_layers: list[int] = [64, 64], pretrained_agent_ratio: float = 0.5, pretrained_model_path: str = 'experiments/pretrained_model.pth', start_eps: float = 1.0, end_eps: float = 0.1, decay_episodes: int = 1000, memory_size: int = 10000, batch_size: int = 32, save_every: int = None, *args, **kwargs):
+def train(env_type: str,
+            algorithm: str,
+            seed: int,
+            num_episodes: int = 5000,
+            num_eval_games: int = 2000,
+            evaluate_every: int = 100,
+            dir: str = 'experiments/',
+            max_time: int = 600,
+            resume_training: str = None,
+            train_against_self: bool = False,
+            mlp_layers: list[int] = [64, 64],
+            pretrained_agent_ratio: float = 0.5,
+            pretrained_model_path: str = 'experiments/pretrained_model.pth',
+            start_eps: float = 1.0,
+            end_eps: float = 0.1,
+            decay_episodes: int = 1000,
+            memory_size: int = 10000,
+            batch_size: int = 32,
+            save_every: int = None,
+            *args,
+            **kwargs):
     """
     Entraîne un agent en utilisant un algorithme donné dans un environnement spécifique.
 

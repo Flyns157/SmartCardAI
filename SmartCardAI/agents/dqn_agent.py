@@ -6,21 +6,22 @@ import torch.nn as nn
 from collections import namedtuple
 from copy import deepcopy
 
+from . import Agent
 from ..utils import remove_illegal
 
 Transition = namedtuple('Transition', [
                         'state', 'action', 'reward', 'next_state', 'done', 'legal_actions'])
 
 
-class DQNAgent(object):
+class DQNAgent(Agent):
     '''
     Approximate clone of rlcard.agents.dqn_agent.DQNAgent
     that depends on PyTorch instead of Tensorflow
     '''
 
     def __init__(self,
-                 replay_memory_size: int = 20000,
-                 replay_memory_init_size: int = 100,
+                 replay_memory_size: int = 200000,
+                 replay_memory_init_size: int = 1000,
                  update_target_estimator_every: int = 1000,
                  discount_factor: float = 0.99,
                  epsilon_start: float = 1.0,

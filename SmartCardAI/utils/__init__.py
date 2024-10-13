@@ -3,7 +3,6 @@ from matplotlib.figure import Figure
 from rlcard.agents import RandomAgent
 from rlcard.envs import Env
 import rlcard
-import torch
 import numpy as np
 
 def remove_illegal(action_probs:np.ndarray, legal_actions:list)->np.ndarray:

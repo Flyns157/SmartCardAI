@@ -15,10 +15,12 @@ import torch.nn.functional as F
 from rlcard.agents.dqn_agent import DQNAgent
 from rlcard.utils.utils import remove_illegal
 
+from . import Agent
+
 Transition = collections.namedtuple('Transition', 'info_state action_probs')
 
 
-class NFSPAgent(object):
+class NFSPAgent(Agent):
     ''' An approximate clone of rlcard.agents.nfsp_agent that uses
     pytorch instead of tensorflow.  Note that this implementation
     differs from Henrich and Silver (2016) in that the supervised

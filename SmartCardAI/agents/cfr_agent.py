@@ -6,9 +6,10 @@ from rlcard.envs import Env
 import os
 import pickle
 
+from . import Agent
 from ..utils import remove_illegal
 
-class CFRAgent(object):
+class CFRAgent(Agent):
     ''' Implement CFR (chance sampling) algorithm
     '''
 

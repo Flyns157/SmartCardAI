@@ -4,6 +4,8 @@ import sys
 reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
 installed_packages = [r.decode().split('==')[0] for r in reqs.split()]
 
+class Agent(object):pass
+
 from .cfr_agent import CFRAgent
 from .dqn_agent import DQNAgent
 from .dueling_dqn_agent import DuelingDQNAgent

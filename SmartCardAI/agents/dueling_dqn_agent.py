@@ -6,30 +6,48 @@ import torch.optim as optim
 from collections import deque, namedtuple
 from typing import List, Tuple
 
+from . import Agent
+
 # --- Double DQN with Prioritized Experience Replay and Dueling DQN ---
 
-class DuelingDQNAgent(nn.Module):
+class DuelingDQNAgent(Agent, nn.Module):
     """
     Neural network implementing the Dueling DQN architecture.
     Separates the state value and action advantage streams.
     """
-    def __init__(self, state_size: int, action_size: int) -> None:
+    def __init__(self, state_size: int, action_size: int, mlp_layers: List[int], device:torch.device=None,) -> None:
         """
-        Initialize parameters and build the Dueling DQN network.
+        Initialize parameters and build the Dueling DQN network with customizable MLP layers.
         
         Args:
             state_size (int): Dimension of each state
             action_size (int): Dimension of each action
+            mlp_layers (List[int]): List defining the number of layers and size of neurons for each hidden layer
+            device (torch.device): whether to use the cpu or gpu
         """
         super(DuelingDQNAgent, self).__init__()
-        self.fc1 = nn.Linear(state_size, 128)
-        self.fc2 = nn.Linear(128, 128)
+        
+        if device is None:
+            self.device = torch.device(
+                'cuda:0' if torch.cuda.is_available() else 'cpu')
+        else:
+            self.device = device
+        
+        # Build the MLP layers dynamically based on the mlp_layers parameter
+        layers = []
+        input_size = state_size
+        for layer_size in mlp_layers:
+            layers.append(nn.Linear(input_size, layer_size))
+            layers.append(nn.ReLU())
+            input_size = layer_size
+        
+        self.mlp = nn.Sequential(*layers)
         
         # Value stream
-        self.value_fc = nn.Linear(128, 1)
+        self.value_fc = nn.Linear(input_size, 1)
         
         # Advantage stream
-        self.advantage_fc = nn.Linear(128, action_size)
+        self.advantage_fc = nn.Linear(input_size, action_size)
         
         self.dropout = nn.Dropout(p=0.2)  # Dropout regularization
     
@@ -43,8 +61,8 @@ class DuelingDQNAgent(nn.Module):
         Returns:
             torch.Tensor: Q-values for each action
         """
-        x = torch.relu(self.fc1(x))
-        x = self.dropout(torch.relu(self.fc2(x)))  # Apply Dropout
+        x = self.mlp(x)
+        x = self.dropout(x)  # Apply Dropout
         
         value = self.value_fc(x)
         advantage = self.advantage_fc(x)
