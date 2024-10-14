@@ -17,7 +17,7 @@ from rlcard.utils import (
 )
 from rlcard.agents import RandomAgent
 import rlcard
-
+from rlcard.models.uno_rule_models import UNORuleModelV1
 
 # The next code is deprecated, it will soon no longer be functional
 
@@ -171,7 +171,7 @@ def train(env_type: str,
                 agents.append(torch.load(pretrained_model_path))
             else:
                 # agents.append(UNORuleModelV2().agents[0])
-                agents.append(RandomAgent(num_actions=env.num_actions))
+                agents.append(UNORuleModelV1().agents[0] if env_type=='uno' else RandomAgent(num_actions=env.num_actions))
 
     # Mélanger les agents pour choisir l'agent de départ au hasard
     random.shuffle(agents)
