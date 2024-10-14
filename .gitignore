@@ -166,3 +166,4 @@ cython_debug/
 *.png
 *prompt*.*
 trained_models/
+!SmartCardAI/agents/pretrained/final_model.pth
