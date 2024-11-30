@@ -34,7 +34,7 @@ class DQNAgent:
         self.num_actions = num_actions
         self.train_every = train_every
 
-        # Device configuration (TensorFlow uses slightly different device management)
+        # Device configuration 
         self.device = device or ('/gpu:0' if tf.test.is_gpu_available() else '/cpu:0')
         
         # Total timesteps
@@ -204,7 +204,7 @@ class DQNAgent:
     def save_checkpoint(self, path, filename='checkpoint_dqn.h5'):
         import os
         os.makedirs(path, exist_ok=True)
-        checkpoint = self.checkpoint_attributes()
+        # checkpoint = self.checkpoint_attributes()
         self.q_estimator.model.save_weights(os.path.join(path, filename))
 
 
@@ -215,20 +215,29 @@ class Estimator:
         self.state_shape = state_shape
         self.mlp_layers = mlp_layers or [64, 64]
 
+        # Create the model first
         self.model = self._build_model()
+        
+        # Then create the optimizer
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     def _build_model(self):
-        model = tf.keras.Sequential()
-        model.add(tf.keras.layers.Flatten(input_shape=self.state_shape))
-        model.add(tf.keras.layers.BatchNormalization())
+        # Create input layer
+        inputs = tf.keras.Input(shape=self.state_shape)
+        
+        # Flatten and batch normalize
+        x = tf.keras.layers.Flatten()(inputs)
+        x = tf.keras.layers.BatchNormalization()(x)
 
+        # Add hidden layers
         for layer_size in self.mlp_layers:
-            model.add(tf.keras.layers.Dense(layer_size, activation='tanh'))
+            x = tf.keras.layers.Dense(layer_size, activation='tanh')(x)
         
-        model.add(tf.keras.layers.Dense(self.num_actions, activation='linear'))
+        # Output layer
+        outputs = tf.keras.layers.Dense(self.num_actions, activation='linear')(x)
         
-        model.compile(optimizer=self.optimizer, loss='mse')
+        # Create model
+        model = tf.keras.Model(inputs=inputs, outputs=outputs)
         return model
 
     def predict(self, s):
@@ -239,7 +248,7 @@ class Estimator:
             q_values = self.model(s)
             one_hot_actions = tf.one_hot(a, depth=self.num_actions)
             q_values_for_actions = tf.reduce_sum(q_values * one_hot_actions, axis=1)
-            loss = tf.keras.losses.MSE(y, q_values_for_actions)
+            loss = tf.keras.losses.MeanSquaredError(y, q_values_for_actions)
 
         gradients = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
