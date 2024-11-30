@@ -62,15 +62,15 @@ def train(args):
         )
     agents = [agent]
     if args.env == 'uno':
-        from rlcard.models.uno_rule_models import UNORuleModelV1
-        from rule_agents import UNORuleModelV2, UNORuleModelV4
+        from rlcard.models.uno_rule_models import UNORuleAgentV1
+        from rule_agents import UNORuleAgentV2, UNORuleAgentV4
         ALL_MODELS = {
-            'v1': UNORuleModelV1,
-            'v2': UNORuleModelV2,
-            'v4': UNORuleModelV4,
+            'v1': UNORuleAgentV1,
+            'v2': UNORuleAgentV2,
+            'v4': UNORuleAgentV4,
         }
         for _ in range(1, env.num_players):
-            agents.append(ALL_MODELS[random.choice(ALL_MODELS.keys())](num_actions=env.num_actions))
+            agents.append(ALL_MODELS[random.choice(list(ALL_MODELS.keys()))]())
     else:
         for _ in range(1, env.num_players):
             agents.append(RandomAgent(num_actions=env.num_actions))
