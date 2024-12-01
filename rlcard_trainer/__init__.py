@@ -1,5 +1,4 @@
 import os
-import argparse
 import random
 from pathlib import Path
 
@@ -12,12 +11,12 @@ from rlcard.utils import (
     reorganize,
     Logger,
 )
-from utils import (
+from .utils import (
     load_model,
     get_device,
     plot_curve
 )
-from utils.type_checker import type_check
+from .utils.type_checker import type_check
 
 
 @type_check
@@ -72,7 +71,7 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
     agents = [agent]
     if env.name == 'uno':
         from rlcard.models.uno_rule_models import UNORuleAgentV1
-        from rule_agents import UNORuleAgentV2, UNORuleAgentV4
+        from .rule_agents import UNORuleAgentV2, UNORuleAgentV4
         from rlcard.agents import RandomAgent
         ALL_MODELS = {
             'rd': RandomAgent,
@@ -87,6 +86,7 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
                 agents.append(RandomAgent(num_actions=env.num_actions))
     else:
         for _ in range(1, env.num_players):
+            from rlcard.agents import RandomAgent
             agents.append(RandomAgent(num_actions=env.num_actions))
 
     # Set agents in the environment
@@ -131,77 +131,3 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
     save_path = os.path.join(log_dir, 'model.pth')
     torch.save(agent, save_path)
     print('Model saved in', save_path)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser("DQN/NFSP example in RLCard")
-    parser.add_argument(
-        '--env',
-        type=str,
-        default='uno',
-        choices=[
-            'blackjack',
-            'leduc-holdem',
-            'limit-holdem',
-            'doudizhu',
-            'mahjong',
-            'no-limit-holdem',
-            'uno',
-            'gin-rummy',
-            'bridge',
-        ],
-    )
-    parser.add_argument(
-        '--algorithm',
-        type=str,
-        default='dqn',
-        choices=[
-            'dqn',
-            'nfsp',
-        ],
-    )
-    parser.add_argument(
-        '--cuda',
-        type=str,
-        default='',
-    )
-    parser.add_argument(
-        '--seed',
-        type=int,
-        default=42,
-    )
-    parser.add_argument(
-        '--num_episodes',
-        type=int,
-        default=5000,
-    )
-    parser.add_argument(
-        '--num_eval_games',
-        type=int,
-        default=2000,
-    )
-    parser.add_argument(
-        '--evaluate_every',
-        type=int,
-        default=100,
-    )
-    parser.add_argument(
-        '--log_dir',
-        type=str,
-        default='experiments/',
-    )
-    parser.add_argument(
-        '--learning_rate',
-        type=float,
-        default=5e-5,
-    )
-    parser.add_argument(
-        '--resume_training',
-        type=bool,
-        default=False,
-    )
-
-    args = parser.parse_args()
-
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
-    train(**dict(args._get_kwargs()))
