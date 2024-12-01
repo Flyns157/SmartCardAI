@@ -5,6 +5,17 @@ from rlcard.envs import Env
 import rlcard
 import numpy as np
 
+def get_device():
+    import torch
+    if torch.cuda.is_available():
+        device = torch.cuda.current_device()
+        print("--> Running on the GPU")
+    else:
+        device = "cpu"
+        print("--> Running on the CPU")
+
+    return device 
+
 def remove_illegal(action_probs:np.ndarray, legal_actions:list)->np.ndarray:
     ''' Remove illegal actions and normalize the
         probability vector
