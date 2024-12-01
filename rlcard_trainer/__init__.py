@@ -1,10 +1,12 @@
 import os
 import random
 from pathlib import Path
+from time import time
 
 import torch
 
 import rlcard
+from rlcard.envs import Env
 from rlcard.utils import (
     set_seed,
     tournament,
@@ -18,9 +20,23 @@ from .utils import (
 )
 from .utils.type_checker import type_check
 
+from rlcard.models.uno_rule_models import UNORuleAgentV1
+from .rule_agents import UNORuleAgentV2, UNORuleAgentV4
+from rlcard.agents import RandomAgent
+
+ALL_UNO_MODELS = {
+    'rd': RandomAgent,
+    'v1': UNORuleAgentV1,
+    'v2': UNORuleAgentV2,
+    'v4': UNORuleAgentV4,
+}
+
 
 @type_check
 def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, num_eval_games: int, evaluate_every: int, log_dir:  Path | str, learning_rate: float, resume_training: bool, cuda: str, *args, **kwargs):
+    from debug_sys.logger import Logger as DLogger
+    from debug_sys import Types as DTypes
+    dlogger = DLogger(os.path.join(log_dir, 'train.log'))
 
     # Check whether gpu is available
     device = get_device()
@@ -29,7 +45,7 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
     set_seed(seed)
 
     # Make the environment with seed
-    env = rlcard.make(
+    env: Env = rlcard.make(
         env,
         config={
             'seed': seed,
@@ -52,7 +68,7 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
                 agent = DQNAgent(
                     num_actions=env.num_actions,
                     state_shape=env.state_shape[0],
-                    mlp_layers=[64, 64, 64, 64],
+                    mlp_layers= kwargs.get('mlp_layers') or [64, 64, 64, 64],
                     device=torch.device(device),
                     learning_rate=learning_rate,
                 )
@@ -61,8 +77,8 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
                 agent = NFSPAgent(
                     num_actions=env.num_actions,
                     state_shape=env.state_shape[0],
-                    hidden_layers_sizes=[64,64],
-                    q_mlp_layers=[64,64],
+                    hidden_layers_sizes= kwargs.get('hidden_layers_sizes') or [64, 64],
+                    q_mlp_layers= kwargs.get('q_mlp_layers') or [64, 64],
                     device=torch.device(device),
                 )
             case _:
@@ -70,29 +86,24 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
 
     agents = [agent]
     if env.name == 'uno':
-        from rlcard.models.uno_rule_models import UNORuleAgentV1
-        from .rule_agents import UNORuleAgentV2, UNORuleAgentV4
-        from rlcard.agents import RandomAgent
-        ALL_MODELS = {
-            'rd': RandomAgent,
-            'v1': UNORuleAgentV1,
-            'v2': UNORuleAgentV2,
-            'v4': UNORuleAgentV4,
-        }
-        for _ in range(1, env.num_players):
-            if (agent_model := random.choice(list(ALL_MODELS.keys()))) not in ('rd'):
-                agents.append(ALL_MODELS[agent_model]())
+        for _ in range(env.num_players * 2):
+            if (agent_model := random.choice(list(ALL_UNO_MODELS.keys()))) not in ('rd'):
+                agents.append(ALL_UNO_MODELS[agent_model]())
             else:
                 agents.append(RandomAgent(num_actions=env.num_actions))
     else:
         for _ in range(1, env.num_players):
-            from rlcard.agents import RandomAgent
             agents.append(RandomAgent(num_actions=env.num_actions))
 
     # Set agents in the environment
     env.set_agents(agents)
+    dlogger.log(DTypes.INFO, message := f"Training {env.num_players}-player {env.name} game with {algorithm} algorithm")
+    print(message)
+    dlogger.log(DTypes.INFO, message := f"Agents Used: {', '.join(set(str(type(a)) for a in agents))}")
+    print(message)
 
     # Start training
+    start_time = time()
     with Logger(log_dir) as logger:
         for episode in range(num_episodes):
 
@@ -111,7 +122,7 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
             for ts in trajectories[0]:
                 agent.feed(ts)
 
-            # Evaluate the performance. Play with random agents.
+            # Evaluate the performance.
             if episode % evaluate_every == 0:
                 logger.log_performance(
                     episode,
@@ -120,6 +131,9 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
                         num_eval_games,
                     )[0]
                 )
+
+                dlogger.log(DTypes.INFO, message := f"{episode / num_episodes * 100:.2f}% - Elapsed time: {time() - start_time:.2f}s - device: {device}")
+                print(message)
 
         # Get the paths
         csv_path, fig_path = logger.csv_path, logger.fig_path
