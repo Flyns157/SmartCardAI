@@ -129,25 +129,37 @@ def train(env_type: str,
     )
 
     # Initialiser l'agent et utiliser des agents aléatoires comme adversaires
-    if algorithm == 'dqn':
-        from .agents import DQNAgent
-        agent = DQNAgent(
-            num_actions=env.num_actions,
-            state_shape=env.state_shape[0],
-            mlp_layers=mlp_layers,
-            device=device,
-            **kwargs
-        )
-    elif algorithm == 'nfsp':
-        from .agents import NFSPAgent
-        agent = NFSPAgent(
-            num_actions=env.num_actions,
-            state_shape=env.state_shape[0],
-            hidden_layers_sizes=mlp_layers,
-            q_mlp_layers=[64, 64],
-            device=device,
-            **kwargs
-        )
+    match algorithm:
+        case 'dqn':
+            from rlcard.agents import DQNAgent
+            agent = DQNAgent(
+                num_actions=env.num_actions,
+                state_shape=env.state_shape[0],
+                mlp_layers=mlp_layers,
+                device=device,
+                **kwargs
+            )
+        case 'dqn+':
+            from .agents import DQNAgent as DQNAgentPlus
+            agent = DQNAgentPlus(
+                num_actions=env.num_actions,
+                state_shape=env.state_shape[0],
+                mlp_layers=mlp_layers,
+                device=device,
+                **kwargs
+            )
+        case 'nfsp':
+            from .agents import NFSPAgent
+            agent = NFSPAgent(
+                num_actions=env.num_actions,
+                state_shape=env.state_shape[0],
+                hidden_layers_sizes=mlp_layers,
+                q_mlp_layers=[64, 64],
+                device=device,
+                **kwargs
+            )
+        case _:
+            raise ValueError(f"Algorithm {algorithm} not supported")
 
     # Charger un modèle existant si resume_training contient quelque chose
     if resume_training is not None:
