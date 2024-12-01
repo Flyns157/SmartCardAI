@@ -44,8 +44,8 @@ def remove_illegal(action_probs:np.ndarray, legal_actions:list)->np.ndarray:
         probs /= np.sum(probs)
     return probs
 
-# @type_check
-def load_model(model_path:str, env:Env = None, position:int = None, device:str = 'cpu', weights_only:bool = False):
+@type_check
+def load_model(model_path: str, env: Env | None = None, position: int | None = None, device: str | None = 'cpu', weights_only: bool | None = False):
     """
     Charge un modèle d'agent à partir d'un chemin donné.
 

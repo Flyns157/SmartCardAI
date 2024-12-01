@@ -8,10 +8,7 @@ def type_check(func: types.FunctionType, *args, **kwargs):
     A decorator that automatically verifies function arguments 
     using type hints from function annotations, including default values.
     
-    Usage:
-    @type_check
-    def example_func(numbers: list[int | float], name: str, details: tuple[int, str] = (42, 'info')) -> None:
-        # Function implementation
+    Handles None values in Union types more flexibly.
     """
     @wraps(func)  # Preserve original function's metadata
     def wrapper(*args, **kwargs):
@@ -58,23 +55,30 @@ def _check_type(value, type_spec, param_name=None):
     """
     Recursively validate a value against a type specification.
     
-    Args:
-        value: The value to check
-        type_spec: The type specification to validate against
-        param_name: Optional parameter name for error messages
-    
-    Raises:
-        TypeError: If the value does not match the type specification
+    Allows None for Union types that include None.
     """
-    # Handle None as a special case
+    # Check if None is allowed in the type specification
+    def is_none_allowed(type_spec):
+        # Check for Union types
+        origin = get_origin(type_spec)
+        if origin is Union:
+            return type(None) in get_args(type_spec)
+        
+        # Check for UnionType in Python 3.10+
+        if isinstance(type_spec, types.UnionType):
+            return type(None) in type_spec.__args__
+        
+        return False
+
+    # If value is None, check if it's allowed
     if value is None:
-        if type_spec is not type(None):
+        if not is_none_allowed(type_spec):
             raise TypeError(f"Value for {param_name or 'parameter'} cannot be None")
         return
     
     # Special handling for | (Union) types in Python 3.10+
     if isinstance(type_spec, types.UnionType):
-        union_types = type_spec.__args__
+        union_types = [t for t in type_spec.__args__ if t is not type(None)]
         for union_type in union_types:
             try:
                 _check_type(value, union_type, param_name)
@@ -96,8 +100,10 @@ def _check_type(value, type_spec, param_name=None):
     
     # Handle Union types from typing module
     if origin is Union:
+        # Remove None from type arguments
+        type_args = [t for t in get_args(type_spec) if t is not type(None)]
+        
         # Check if the value matches any of the types in the Union
-        type_args = get_args(type_spec)
         for union_type in type_args:
             try:
                 _check_type(value, union_type, param_name)
