@@ -162,3 +162,4 @@ cython_debug/
 # Specific to the project
 *.lnk
 experiments/
+trained_models/
