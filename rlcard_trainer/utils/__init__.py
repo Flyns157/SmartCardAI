@@ -5,24 +5,25 @@ from rlcard.envs import Env
 import rlcard
 import numpy as np
 from .type_checker import type_check
+import torch
 
-def check_cuda_available() -> bool:
+def check_cuda_available(display_device_info: bool = False) -> bool:
     import torch.cuda
-    if tmp := torch.cuda.is_available():
+    if tmp := torch.cuda.is_available() and display_device_info:
         print(f"CUDA is available. Current device: {torch.cuda.current_device()}")
         print(f"Device name: {torch.cuda.get_device_name(torch.cuda.current_device())}")
-    else:
+    elif display_device_info:
         print("CUDA is not available.")
     return tmp
 
-def get_device() -> str:
+def get_device(display_device_info: bool = False) -> str:
     import torch.cuda
-    if os.environ["CUDA_VISIBLE_DEVICES"] and check_cuda_available() :
+    if os.environ.get("CUDA_VISIBLE_DEVICES", True) and check_cuda_available(display_device_info) :
         device_name = torch.cuda.get_device_name(device_id := torch.cuda.current_device())
-        print(f"--> Running on : {device_name}")
+        if display_device_info: print(f"--> Running on : {device_name}")
         return f'cuda:{device_id}'
     else:
-        print("--> Running on the CPU")
+        if display_device_info: print("--> Running on the CPU")
         return "cpu"
 
 def remove_illegal(action_probs:np.ndarray, legal_actions:list)->np.ndarray:
@@ -45,7 +46,7 @@ def remove_illegal(action_probs:np.ndarray, legal_actions:list)->np.ndarray:
     return probs
 
 @type_check
-def load_model(model_path: str, env: Env | None = None, position: int | None = None, device: str | None = 'cpu', weights_only: bool | None = False):
+def load_model(model_path: str, env: Env | None = None, position: int | None = None, device: str | torch.device | None = 'cpu', weights_only: bool | None = False):
     """
     Charge un modèle d'agent à partir d'un chemin donné.
 

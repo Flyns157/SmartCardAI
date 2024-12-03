@@ -61,11 +61,6 @@ if __name__ == '__main__':
         default='experiments/',
     )
     parser.add_argument(
-        '--learning_rate',
-        type=float,
-        default=5e-5,
-    )
-    parser.add_argument(
         '--resume_training',
         type=bool,
         default=False,
