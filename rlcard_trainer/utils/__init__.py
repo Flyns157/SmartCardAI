@@ -1,4 +1,5 @@
 import os
+from typing import Iterable, Hashable
 from matplotlib.figure import Figure
 from rlcard.agents import RandomAgent
 from rlcard.envs import Env
@@ -278,3 +279,22 @@ def plot_curve(csv_path: str, save_path: str, algorithm: str, display_avg: bool 
         fig.savefig(save_path)
 
         return fig
+
+
+@type_check
+def oc(iterable: Iterable[Hashable]) -> dict:
+    ''' Count the number of occurrences of each element in an iterable.
+
+    Args:
+        iterable (Iterable[Hashable]): An iterable of hashable elements.
+
+    Returns:
+        dict: A dictionary mapping each element to its count in the iterable.
+
+    Example:
+        oc([1, 2, 2, 3, 3, 3])   # Returns {1: 1, 2: 2, 3: 3}
+    '''
+    from collections import defaultdict
+    counts = defaultdict(int)
+    for elem in iterable: counts[elem] += 1
+    return dict(counts)
