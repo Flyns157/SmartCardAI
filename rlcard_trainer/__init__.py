@@ -1,3 +1,5 @@
+__version__ = "2.0.4"
+
 import os
 import random
 from pathlib import Path
@@ -69,7 +71,7 @@ class Model(object):
             self.path = path if os.path.isdir(path) else os.path.dirname(path)
         elif os.path.isdir(path):
             from datetime import date
-            self.name = f"{env.name}_{type(self.agent).__name__}_{date.today().strftime('%Y-%m-%d')}"
+            self.name = f"{env.name}_{type(self.agent).__name__}_{date.today():%Y-%m-%d}.pth"
             self.path = path
         else:
             self.name = os.path.basename(path)
@@ -172,7 +174,10 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
                     )[0]
                 )
 
-                dlogger.log(DTypes.INFO, message := f"{episode / num_episodes * 100:.2f}% - Elapsed time: {time() - start_time:.2f}s - device: {device}")
+                elapsed_time = time() - start_time
+                h, elapsed_time = elapsed_time//3600, elapsed_time%3600
+                m, s = elapsed_time//60, elapsed_time%60
+                dlogger.log(DTypes.INFO, message := f"{episode / num_episodes:.2%}% - Elapsed time: {h}H {m}M {s}S - device: {device}")
                 print(message)
 
         # Get the paths
