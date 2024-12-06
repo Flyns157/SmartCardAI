@@ -4,13 +4,15 @@ from pathlib import Path
 import torch
 
 from rlcard.envs import Env
+from rlcard.models.model import Model
+
 from ..utils import (
     load_model,
-    get_device
+    get_device,
+    type_check
 )
-from ..utils.type_checker import type_check
 
-class Model(object):
+class Model(Model):
     @type_check
     def __init__(self, env: Env, agent: str | type, path: Path | str = r'./experiments/', name: str | None = None, device: str | torch.device = get_device(), **kwargs) -> None:
         self.env = env
@@ -70,3 +72,15 @@ class Model(object):
             self.agent = load_model(model_path=model_path, device=self.device, env=self.env)
         else:
             raise FileNotFoundError(f"/!\\ No model existing at : {model_path}")
+        
+    @property
+    def agents(self) -> list:
+        ''' Get a list of agents for each position in a the game
+
+        Returns:
+            agents (list): A list of agents
+
+        Note:   Each agent should be just like RL agent with step and eval_step
+                functioning well.
+        '''
+        raise [self.agent]
