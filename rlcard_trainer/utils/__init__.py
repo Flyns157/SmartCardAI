@@ -3,7 +3,8 @@ from typing import Iterable, Hashable
 from matplotlib.figure import Figure
 from rlcard.agents import RandomAgent
 from rlcard.envs import Env
-import rlcard
+from rlcard.utils import set_seed
+from rlcard import make
 import numpy as np
 from .type_checker import type_check
 import torch
@@ -147,7 +148,7 @@ def rank_agents(agents, env_type='uno', num_games=1000, display_results:bool = F
         list: Liste triée des agents avec leur taux de victoires sous forme de tuples (index de l'agent, taux de victoires).
     """
     # Créer l'environnement
-    env = rlcard.make(env_type)
+    env = make(env_type)
 
     # Créer un tableau pour stocker le nombre de victoires pour chaque agent
     num_agents = len(agents)
@@ -197,7 +198,7 @@ def agent_1v1(agent, agent_bis=None, num_games:int = 10000, env_type:str = 'uno'
         tuple: Le nombre de victoires pour chaque agent.
     """
     # Créer l'environnement pour le jeu Uno
-    env = rlcard.make(env_type)
+    env = make(env_type)
 
     if agent_bis is None:
         agent_bis = RandomAgent(num_actions=env.num_actions)
@@ -298,3 +299,8 @@ def oc(iterable: Iterable[Hashable]) -> dict:
     counts = defaultdict(int)
     for elem in iterable: counts[elem] += 1
     return dict(counts)
+
+
+def UNOenv(seed: str | int | float = 42) -> Env:
+    set_seed(seed)
+    return make('uno', config={'seed': seed})
