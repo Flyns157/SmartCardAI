@@ -1,10 +1,14 @@
+"""
+This is the implementation of the UNO Rule agent version 4 with enhanced strategies.
+"""
+
 from collections import deque
 import numpy as np
 
 import rlcard
 from rlcard.models.model import Model
 
-class UNORuleAgentV4(object):
+class UNORuleAgentV4:
     ''' UNO Rule agent version 6 with enhanced strategies:
         - Defensive use of +2 and +4
         - Chaining wild cards
@@ -34,7 +38,9 @@ class UNORuleAgentV4(object):
             return 'draw'
 
         hand = state['hand']
-        others_hand_sizes = [state['num_cards'][i] for i in range(state['num_players']) if  i != state['current_player']]
+        others_hand_sizes = [state['num_cards'][i]
+                            for i in range(state['num_players'])
+                            if  i != state['current_player']]
         min_others_hand_size = min(others_hand_sizes) if others_hand_sizes else 0
         top_card = state['target'] # ou state['played_cards'][-1]
         current_color = top_card[0]  # The color of the top card in play
@@ -55,7 +61,7 @@ class UNORuleAgentV4(object):
             return np.random.choice(wild_actions)
 
         # 3. Détecter les couleurs surutilisées par les adversaires
-        overused_color = self.detect_overused_color(state)
+        overused_color = self.detect_overused_color()
         if overused_color:
             # Tenter de changer de couleur pour contrer
             available_colors = self.count_colors(self.filter_wild(hand))
@@ -138,7 +144,7 @@ class UNORuleAgentV4(object):
 
         return color_nums
 
-    def detect_overused_color(self, state):
+    def detect_overused_color(self):
         ''' Detect if a color is being overused by opponents
 
         Args:

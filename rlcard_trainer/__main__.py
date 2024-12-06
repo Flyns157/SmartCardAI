@@ -1,3 +1,9 @@
+"""
+This is the main file of the rlcard_trainer package.
+It is responsible for parsing the command line arguments and calling the train function from the 
+train module.
+"""
+
 import os
 import argparse
 from . import train
@@ -69,4 +75,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
-    train(**dict(args._get_kwargs()))
+    train(**vars(args))

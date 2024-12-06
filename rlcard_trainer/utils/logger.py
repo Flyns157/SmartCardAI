@@ -1,9 +1,15 @@
+"""
+This module provides a logger class that can be used to save the running results
+and help make plots from the results.
+"""
+
 import os
 import csv
 
-class Logger(object):
+class Logger:
     ''' Logger saves the running results and helps make plots from the results
     '''
+    fieldnames = ['episode', 'reward', 'elapsed_time']
 
     def __init__(self, log_dir):
         ''' Initialize the labels, legend and paths of the plot and log file.
@@ -12,6 +18,9 @@ class Logger(object):
             log_path (str): The path the log files
         '''
         self.log_dir = log_dir
+        self.txt_path = os.path.join(self.log_dir, 'log.txt')
+        self.csv_path = os.path.join(self.log_dir, 'performance.csv')
+        self.fig_path = os.path.join(self.log_dir, 'fig.png')
 
     def __enter__(self):
         self.txt_path = os.path.join(self.log_dir, 'log.txt')
@@ -21,10 +30,10 @@ class Logger(object):
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
 
-        self.txt_file = open(self.txt_path, 'w')
-        self.csv_file = open(self.csv_path, 'w')
-        fieldnames = ['episode', 'reward', 'elapsed_time']
-        self.writer = csv.DictWriter(self.csv_file, fieldnames=fieldnames)
+        self.txt_file = open(self.txt_path, 'w', encoding='utf-8')
+        self.csv_file = open(self.csv_path, 'w', encoding='utf-8')
+
+        self.writer = csv.DictWriter(self.csv_file, fieldnames=self.fieldnames)
         self.writer.writeheader()
 
         return self

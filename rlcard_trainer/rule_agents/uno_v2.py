@@ -1,13 +1,20 @@
+"""
+UNO Rule agent version 2
+"""
+
 import numpy as np
 
 import rlcard
 from rlcard.models.model import Model
 
-class UNORuleAgentV2(object):
+class UNORuleAgentV2:
     ''' UNO Rule agent version 2
     '''
 
     def __init__(self):
+        """
+            Initialize the rule agent
+        """
         self.use_raw = True
 
     def step(self, state):

@@ -1,17 +1,34 @@
-import os
+"""
+This module contains utility functions for the rlcard_trainer package.
+"""
+
 from typing import Iterable, Hashable
+from collections import defaultdict
+import threading
+import csv
+import os
 from matplotlib.figure import Figure
-from rlcard.agents import RandomAgent
-from rlcard.envs import Env
+import matplotlib.pyplot as plt
+from rlcard.agents import RandomAgent, CFRAgent
 from rlcard.utils import set_seed
+from rlcard.envs import Env
+from rlcard import models
 from rlcard import make
 import numpy as np
-from .functools import type_check, reset_default_args
 import torch
-from .logger import Logger
+
+from .functools import type_check, reset_default_args
 
 def check_cuda_available(display_device_info: bool = False) -> bool:
-    import torch.cuda
+    """
+    Check if CUDA is available and display device information if requested.
+
+    Args:
+        display_device_info (bool): If True, display device information.
+
+    Returns:
+        bool: True if CUDA is available, False otherwise.
+    """
     if tmp := torch.cuda.is_available() and display_device_info:
         print(f"CUDA is available. Current device: {torch.cuda.current_device()}")
         print(f"Device name: {torch.cuda.get_device_name(torch.cuda.current_device())}")
@@ -20,14 +37,23 @@ def check_cuda_available(display_device_info: bool = False) -> bool:
     return tmp
 
 def get_device(display_device_info: bool = False) -> str:
-    import torch.cuda
+    """
+    Get the device to use for training and display device information if requested.
+
+    Args:
+        display_device_info (bool): If True, display device information.
+
+    Returns:
+        str: The device to use for training (e.g. 'cuda:0' or 'cpu').
+    """
     if os.environ.get("CUDA_VISIBLE_DEVICES", True) and check_cuda_available(display_device_info) :
         device_name = torch.cuda.get_device_name(device_id := torch.cuda.current_device())
-        if display_device_info: print(f"--> Running on : {device_name}")
+        if display_device_info:
+            print(f"--> Running on : {device_name}")
         return f'cuda:{device_id}'
-    else:
-        if display_device_info: print("--> Running on the CPU")
-        return "cpu"
+    if display_device_info:
+        print("--> Running on the CPU")
+    return "cpu"
 
 def remove_illegal(action_probs:np.ndarray, legal_actions:list)->np.ndarray:
     ''' Remove illegal actions and normalize the
@@ -49,7 +75,12 @@ def remove_illegal(action_probs:np.ndarray, legal_actions:list)->np.ndarray:
     return probs
 
 @type_check
-def load_model(model_path: str, env: Env | None = None, position: int | None = None, device: str | torch.device | None = 'cpu', weights_only: bool | None = False):
+def load_model(
+    model_path: str,
+    env: Env | None = None,
+    position: int | None = None,
+    device: str | torch.device | None = 'cpu',
+    weights_only: bool | None = False):
     """
     Charge un modèle d'agent à partir d'un chemin donné.
 
@@ -63,18 +94,14 @@ def load_model(model_path: str, env: Env | None = None, position: int | None = N
         agent: L'agent chargé.
     """
     if os.path.isfile(model_path):  # Torch model
-        import torch
         agent = torch.load(model_path, map_location=device, weights_only=weights_only)
         agent.set_device(device)
     elif os.path.isdir(model_path):  # CFR model
-        from rlcard.agents import CFRAgent
         agent = CFRAgent(env, model_path)
         agent.load()
     elif model_path == 'random':  # Random model
-        from rlcard.agents import RandomAgent
         agent = RandomAgent(num_actions=env.num_actions)
     else:  # A model in the model zoo
-        from rlcard import models
         agent = models.load(model_path).agents[position]
 
     print(f'Model loaded from {model_path}')
@@ -101,10 +128,10 @@ def tournament(env: Env, num: int, display_results: bool = False):
     payoffs = [0 for _ in range(env.num_players)]
     wins = [0 for _ in range(env.num_players)]
     counter = 0
-    
+
     while counter < num:
         _, _payoffs = env.run(is_training=False)
-        
+
         if isinstance(_payoffs, list):
             for _p in _payoffs:
                 winner = np.argmax(_p)
@@ -118,7 +145,7 @@ def tournament(env: Env, num: int, display_results: bool = False):
             for i, _ in enumerate(payoffs):
                 payoffs[i] += _payoffs[i]
             counter += 1
-    
+
     for i, _ in enumerate(payoffs):
         payoffs[i] /= counter
 
@@ -127,17 +154,20 @@ def tournament(env: Env, num: int, display_results: bool = False):
 
     # Sort by number of wins (descending)
     results.sort(key=lambda x: x[1], reverse=True)
-    
+
     # Print the results in order of efficiency
     if display_results:
         for i, (agent, win_count, avg_payoff) in enumerate(results):
-            print(f"[ {win_count/num:.2%} ] Rank {i + 1}: Agent {agent} - Wins: {win_count}, Avg Payoff: {avg_payoff:.2f}")
+            print(
+                f"[ {win_count/num:.2%} ] Rank {i + 1}: Agent {agent} - Wins: {win_count}, Avg Payoff: {avg_payoff:.2f}"
+            )
 
     return payoffs, wins
 
 def rank_agents(agents, env_type='uno', num_games=1000, display_results:bool = False):
     """
-    Evalue une liste d'agents dans un tournoi en mode round-robin et retourne un classement des agents avec leur taux de victoires.
+    Evalue une liste d'agents dans un tournoi en mode round-robin et
+    retourne un classement des agents avec leur taux de victoires.
 
     Args:
         agents (list): Liste des agents à évaluer.
@@ -146,7 +176,8 @@ def rank_agents(agents, env_type='uno', num_games=1000, display_results:bool = F
         display_results (bool): Si les résultats doivent être affichés.
 
     Returns:
-        list: Liste triée des agents avec leur taux de victoires sous forme de tuples (index de l'agent, taux de victoires).
+        list: Liste triée des agents avec leur taux de victoires sous forme de tuples
+        (index de l'agent, taux de victoires).
     """
     # Créer l'environnement
     env = make(env_type)
@@ -160,7 +191,7 @@ def rank_agents(agents, env_type='uno', num_games=1000, display_results:bool = F
         for j in range(i + 1, num_agents):
             # Associer les deux agents au jeu
             env.set_agents([agents[i], agents[j]])
-            
+
             # Jouer les parties
             _, (first_agent_wins, second_agent_wins) = tournament(env=env, num=num_games)
 
@@ -210,11 +241,11 @@ def agent_1v1(agent, agent_bis=None, num_games:int = 10000, env_type:str = 'uno'
     # Lancer le tournoi
     return tournament(env=env, num=num_games, display_results=True)[1]
 
-def avg(E: Iterable[float | int]) -> int | float:
+def avg(g: Iterable[float | int]) -> int | float:
     ''' Calculate the average of a list, tuple, or set of numbers.
 
     Args:
-        E (list, tuple, or set): A collection of numeric values (int or float) to compute the average.
+        g (list, tuple, or set): A collection of numeric values (int or float) to compute the average.
 
     Returns:
         int or float: The average of the values in the collection.
@@ -227,7 +258,7 @@ def avg(E: Iterable[float | int]) -> int | float:
         avg((10, 20, 30))      # Returns 20.0
         avg({1.5, 2.5, 3.5})   # Returns 2.5
     '''
-    return sum(E) / len(E)
+    return sum(g) / len(g)
 
 
 def plot_curve(csv_path: str, save_path: str, algorithm: str, display_avg: bool = False) -> Figure:
@@ -256,10 +287,7 @@ def plot_curve(csv_path: str, save_path: str, algorithm: str, display_avg: bool 
     Example:
         plot_curve('data/rewards.csv', 'plots/reward_curve.png', 'DQN', display_avg=True)
     '''
-    import os
-    import csv
-    import matplotlib.pyplot as plt
-    with open(csv_path) as csvfile:
+    with open(csv_path, encoding='utf8') as csvfile:
         reader = csv.DictReader(csvfile)
         xs = []
         ys = []
@@ -296,13 +324,24 @@ def oc(iterable: Iterable[Hashable]) -> dict:
     Example:
         oc([1, 2, 2, 3, 3, 3])   # Returns {1: 1, 2: 2, 3: 3}
     '''
-    from collections import defaultdict
     counts = defaultdict(int)
-    for elem in iterable: counts[elem] += 1
+    for elem in iterable:
+        counts[elem] += 1
     return dict(counts)
 
 
-def UNOenv(seed: str | int | float = 42) -> Env:
+def gen_uno_env(seed: str | int | float = 42) -> Env:
+    ''' Create a new UNO environment with a specified seed.
+
+    Args:
+        seed (str, int, or float, optional): The seed to be used for the environment (default is 42).
+
+    Returns:
+        Env: A new UNO environment with the specified seed.
+
+    Example:
+        env = gen_uno_env(seed=42)
+    '''
     set_seed(seed)
     return make('uno', config={'seed': seed})
 
@@ -317,12 +356,12 @@ def limit_exec_time(func, time_limit: int = 10, *args, **kwargs):
         **kwargs: Keyword arguments to be passed to the function.
 
     Returns:
-        The return value of the function if it completes within the time limit, or None if it exceeds the time limit.
+        The return value of the function if it completes within the time limit,
+        or None if it exceeds the time limit.
 
     Example:
         limit_exec_time(lambda: time.sleep(10), 5)   # Raises TimeoutError
     '''
-    import threading
     thread = threading.Thread(target=func, args=args, kwargs=kwargs)
     thread.start()
     timer = threading.Timer(time_limit, thread.join)
