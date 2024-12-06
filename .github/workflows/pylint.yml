@@ -26,12 +26,12 @@ jobs:
         echo "Pylint score: $pylint_score"
         if (( $(echo "$pylint_score > 8.5" | bc -l) )); then
           echo "Pylint score is greater than 8.5"
-          echo "##[set-output name=status;]success"
+          echo "status=success" >> $GITHUB_ENV
         else
           echo "Pylint score is less than or equal to 8.5"
-          echo "##[set-output name=status;]failure"
+          echo "status=failure" >> $GITHUB_ENV
         fi
 
     - name: Set job status
-      if: steps.pylint.outputs.status == 'failure'
+      if: env.status == 'failure'
       run: exit 1
