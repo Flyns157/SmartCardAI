@@ -149,8 +149,31 @@ def _check_type(value, type_spec, param_name=None):
     # Add more type checking for other complex types as needed
     raise TypeError(f"Unsupported type specification: {type_spec}")
 
-# Example usage with default value demonstration
+
+def reset_default_args(func):
+    def wrapper(*args, **kwargs):
+        # Get the function's default arguments
+        defaults = func.__defaults__ or ()
+        default_names = func.__code__.co_varnames[len(args):len(args)+len(defaults)]
+        
+        # Create a copy of default arguments for this call
+        modified_kwargs = kwargs.copy()
+        for name, default in zip(default_names, defaults):
+            if name not in modified_kwargs:
+                # Create a new instance if the argument is mutable
+                if isinstance(default, (list, dict, set)):
+                    modified_kwargs[name] = type(default)()
+                else:
+                    modified_kwargs[name] = default
+        
+        return func(*args, **modified_kwargs)
+    return wrapper
+
+
 if __name__ == "__main__":
+    # ====================================
+    # | Demonstrate type_check decorator |
+    # ====================================
     @type_check
     def example_func(numbers: list[int | float], name: str, details: tuple[int, str] = (42, 'info')) -> None:
         """
@@ -181,5 +204,38 @@ if __name__ == "__main__":
     
     try:
         example_func([1, 2], 123)
+    except TypeError as e:
+        print(f"Caught error: {e}")
+
+
+    # ============================================
+    # | Demonstrate reset_default_args decorator |
+    # ============================================
+    @reset_default_args
+    def example_func_with_defaults(numbers: list[int | float], name: str, details: tuple[int, str] = (42, 'info')) -> None:
+        """
+        An example function to demonstrate resetting default arguments.
+        
+        Args:
+            numbers: A list of numbers (int or float)
+            name: A string name
+            details: A tuple containing an int and a string
+        """
+        print(f"Numbers: {numbers}")
+        print(f"Name: {name}")
+        print(f"Details: {details}")
+    
+    # Valid calls with and without default value
+    example_func_with_defaults([1, 2.5, 3], "Test")  # Uses default details
+    example_func_with_defaults([1, 2, 3], "Another test", (100, "data"))  # Provides custom details
+    
+    # These will raise TypeError
+    try:
+        example_func_with_defaults([1, "not a number"], "Test")
+    except TypeError as e:
+        print(f"Caught error: {e}")
+    
+    try:
+        example_func_with_defaults([1, 2], 123)
     except TypeError as e:
         print(f"Caught error: {e}")

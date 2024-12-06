@@ -6,8 +6,9 @@ from rlcard.envs import Env
 from rlcard.utils import set_seed
 from rlcard import make
 import numpy as np
-from .type_checker import type_check
+from .functools import type_check, reset_default_args
 import torch
+from .logger import Logger
 
 def check_cuda_available(display_device_info: bool = False) -> bool:
     import torch.cuda
@@ -209,7 +210,7 @@ def agent_1v1(agent, agent_bis=None, num_games:int = 10000, env_type:str = 'uno'
     # Lancer le tournoi
     return tournament(env=env, num=num_games, display_results=True)[1]
 
-def avg(E: list | tuple | set) -> int | float:
+def avg(E: Iterable[float | int]) -> int | float:
     ''' Calculate the average of a list, tuple, or set of numbers.
 
     Args:
@@ -304,3 +305,42 @@ def oc(iterable: Iterable[Hashable]) -> dict:
 def UNOenv(seed: str | int | float = 42) -> Env:
     set_seed(seed)
     return make('uno', config={'seed': seed})
+
+
+def limit_exec_time(func, time_limit: int = 10, *args, **kwargs):
+    ''' Execute a function with a time limit.
+
+    Args:
+        func: The function to be executed.
+        time_limit (int, optional): The maximum execution time in seconds (default is 10).
+        *args: Positional arguments to be passed to the function.
+        **kwargs: Keyword arguments to be passed to the function.
+
+    Returns:
+        The return value of the function if it completes within the time limit, or None if it exceeds the time limit.
+
+    Example:
+        limit_exec_time(lambda: time.sleep(10), 5)   # Raises TimeoutError
+    '''
+    import threading
+    thread = threading.Thread(target=func, args=args, kwargs=kwargs)
+    thread.start()
+    timer = threading.Timer(time_limit, thread.join)
+    timer.start()
+
+
+def seconds_to_time(seconds: int, separator: str = ':') -> str:
+    ''' Convert a number of seconds to a string representation of the time.
+
+    Args:
+        seconds (int): The number of seconds to be converted.
+
+    Returns:
+        str: A string representation of the time in the format "HH:MM:SS".
+
+    Example:
+        seconds_to_time(3661)   # Returns "01:01:01"
+    '''
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02d}{separator}{minutes:02d}{separator}{seconds:02d}"

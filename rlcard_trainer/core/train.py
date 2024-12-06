@@ -3,17 +3,18 @@ import random
 from pathlib import Path
 from time import time
 
-import rlcard
 from rlcard.envs import Env
 from rlcard.utils import (
     tournament,
     reorganize,
-    Logger,
 )
 from ..utils import (
+    Logger,
     get_device,
     plot_curve,
-    type_check
+    seconds_to_time,
+    type_check,
+    reset_default_args
 )
 
 from .model import Model
@@ -31,33 +32,34 @@ ALL_UNO_MODELS = {
 
 
 @type_check
-def fill_env_with_agents(env: Env, agents: list = []) -> None:
+@reset_default_args
+def fill_env_with_agents(env: Env, agents: list = [], logger: Logger = None) -> None:
     for _ in range(len(agents), env.num_players):
         if env.name == 'uno' and(agent_model := random.choice(list(ALL_UNO_MODELS.keys()))) not in ('rd'):
             agents.append(ALL_UNO_MODELS[agent_model]())
         else:
             agents.append(RandomAgent(num_actions=env.num_actions))
     env.set_agents(agents)
-    # print(f"Agents used: {', '.join(str(type(a)) for a in agents)}")
+    if logger: logger.log(f"Agents Used: {', '.join(set(str(type(a)) for a in agents))}")
     print("ENV agents set")
 
 
 @type_check
-def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, num_eval_games: int, evaluate_every: int, log_dir:  Path | str, resume_training: bool, cuda: bool | str = True, *args, **kwargs):
+def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, num_eval_games: int, evaluate_every: int, log_dir:  Path | str, resume_training: bool, cuda: bool | str = True, **kwargs):
     from debug_sys.logger import Logger as DLogger
-    from debug_sys import Types as DTypes
-    dlogger = DLogger(os.path.join(log_dir, 'train.log'))
 
     # Check whether gpu is available
     if 'cuda' in (device := get_device(True)) and not cuda: device = 'cpu'
 
     # Make the environment with seed
-    env: Env = rlcard.make(
+    from rlcard import make
+    env: Env = make(
         env,
         config={
             'seed': seed,
         }
     )
+    num_games = num_episodes // int(num_episodes**0.5)
 
     # Make the agent
     model = Model(env, algorithm, device=device, **kwargs)
@@ -66,19 +68,30 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
     except FileNotFoundError:
         print(f"No model found at {log_dir}. Starting from scratch.")
 
-    # Set agents in the environment
-    agents = [model.agent]
-    fill_env_with_agents(env, agents)
-
-    dlogger.log(DTypes.INFO, message := f"Training {env.num_players}-player {env.name} game with {algorithm} algorithm")
-    print(message)
-    dlogger.log(DTypes.INFO, message := f"Agents Used: {', '.join(set(str(type(a)) for a in agents))}")
-    print(message)
-
     # Start training
     start_time = time()
+
     with Logger(log_dir) as logger:
+        # Set agents in the environment
+        agents = [model.agent]
+        fill_env_with_agents(env, agents, logger)
+        logger.log(f"Training an {algorithm} model on {num_games} {env.name} games with {env.num_players} players.")
+
+        # Define a function to evaluate the model and log the results
+        @reset_default_args
+        def evaluate_model(episode: int, tmp_time: float = time()):
+            logger.log_performance(
+                num_episodes,
+                tournament(
+                    env,
+                    num_eval_games,
+                )[0],
+                time() - tmp_time
+            )
+            logger.log(f"Episode {episode + 1}/{num_episodes} - Elapsed time: {seconds_to_time(tmp_time - start_time)} - device: {device}")
+
         for episode in range(num_episodes):
+            tmp_time = time()
 
             if algorithm == 'nfsp':
                 agents[0].sample_episode_policy()
@@ -96,19 +109,13 @@ def train(seed: str | int | float, env: str, algorithm: str, num_episodes: int, 
 
             # Evaluate the performance.
             if episode % evaluate_every == 0:
-                logger.log_performance(
-                    episode,
-                    tournament(
-                        env,
-                        num_eval_games,
-                    )[0]
-                )
+                evaluate_model(episode, tmp_time)
 
-                elapsed_time = time() - start_time
-                h, elapsed_time = elapsed_time//3600, elapsed_time%3600
-                m, s = elapsed_time//60, elapsed_time%60
-                dlogger.log(DTypes.INFO, message := f"{episode / num_episodes:.2%}% - Elapsed time: {h}H {m}M {s}S - device: {device}")
-                print(message)
+            # Change oponents
+            if episode % (num_games) == 0:
+                fill_env_with_agents(env, agents[0], logger)
+
+        # TODO : Evaluate the final model against randoms agents
 
         # Get the paths
         csv_path, fig_path = logger.csv_path, logger.fig_path
