@@ -20,5 +20,18 @@ jobs:
         pip install -r requirements.txt
         pip install pylint
     - name: Analysing the code with pylint
+      id: pylint
       run: |
-        pylint $(git ls-files '*.py')
+        pylint_score=$(pylint $(git ls-files '*.py') | tee pylint.log | grep 'Your code has been rated at' | awk '{print $7}' | cut -d'/' -f1)
+        echo "Pylint score: $pylint_score"
+        if (( $(echo "$pylint_score > 8.5" | bc -l) )); then
+          echo "Pylint score is greater than 8.5"
+          echo "##[set-output name=status;]success"
+        else
+          echo "Pylint score is less than or equal to 8.5"
+          echo "##[set-output name=status;]failure"
+        fi
+
+    - name: Set job status
+      if: steps.pylint.outputs.status == 'failure'
+      run: exit 1
