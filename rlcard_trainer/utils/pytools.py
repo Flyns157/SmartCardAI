@@ -4,19 +4,21 @@ using type hints from function annotations, including default values.
 """
 __version__ = "0.1.3"
 from typing import Union, get_origin, get_args
-from functools import wraps
+from functools import wraps, lru_cache
 import inspect
 import types
-from beartype import beartype
-import re
 import copy
+import re
 import os
-from functools import lru_cache
+from beartype import beartype
 
 TYPE_CHECK_ENABLED = os.getenv("ENABLE_TYPE_CHECK", "true").lower() == "true"
 
 
 class TypeCheckError(TypeError):
+    """
+    An error raised when a type check fails.
+    """
     def __init__(self, message):
         super().__init__(message)
 
@@ -229,26 +231,33 @@ def reset_default_args(func):
         # Get the function's default arguments
         defaults = func.__defaults__ or ()
         default_names = func.__code__.co_varnames[len(args):len(args)+len(defaults)]
-        
+
         # Create a copy of default arguments for this call
         modified_kwargs = kwargs.copy()
         for name, default in zip(default_names, defaults):
             if name not in modified_kwargs:
                 # Deep copy the default value to ensure a fresh instance
                 modified_kwargs[name] = copy.deepcopy(default)
-        
+
         return func(*args, **modified_kwargs)
     return wrapper
 
 
-def update_version(version_file, part):
-    with open(version_file, 'r') as f:
+def update_version(version_file, part) -> None:
+    """
+    Update the version number in a file.
+
+    Args:
+        version_file: The path to the file containing the version number.
+        part: The part of the version number to update. Can be "release", "major", or "fix".
+    """
+    with open(version_file, 'r', encoding='utf-8') as f:
         content = f.read()
     match = re.search(r"__version__ = ['\"](\d+)\.(\d+)\.(\d+)['\"]", content)
     if not match:
         raise ValueError("Version string not found")
     release, major, fix = map(int, match.groups())
-    
+
     if part == "release":
         release += 1
         major, fix = 0, 0
@@ -257,11 +266,11 @@ def update_version(version_file, part):
         fix = 0
     elif part == "fix":
         fix += 1
-    
+
     new_version = f"{release}.{major}.{fix}"
     updated_content = re.sub(r"__version__ = ['\"].*['\"]", f"__version__ = '{new_version}'", content)
-    
-    with open(version_file, 'w') as f:
+
+    with open(version_file, 'w', encoding='utf-8') as f:
         f.write(updated_content)
     print(f"Version updated to {new_version}")
 
@@ -313,7 +322,11 @@ if __name__ == "__main__":
     # ============================================
 
     @reset_default_args
-    def example_func_with_defaults(numbers: list[int | float] = [1, 2, 3], name: str = 'default', details: tuple[int, str] = (42, 'info')) -> None:
+    def example_func_with_defaults(
+        numbers: list[int | float] = [1, 2, 3],
+        name: str = 'default',
+        details: tuple[int, str] = (42, 'info')
+        ) -> None:
         """
         An example function to demonstrate resetting default arguments.
 
@@ -324,7 +337,7 @@ if __name__ == "__main__":
         """
         numbers.append(4)
         name += '!'
-        
+
         print(f"Numbers: {numbers}")
         print(f"Name: {name}")
         print(f"Details: {details}")
