@@ -2,7 +2,7 @@
 This module provides a decorator that automatically verifies function arguments 
 using type hints from function annotations, including default values.
 """
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 from typing import Union, get_origin, get_args
 from functools import wraps
 import inspect
@@ -10,6 +10,10 @@ import types
 from beartype import beartype
 import re
 import copy
+import os
+from functools import lru_cache
+
+TYPE_CHECK_ENABLED = os.getenv("ENABLE_TYPE_CHECK", "true").lower() == "true"
 
 
 class TypeCheckError(TypeError):
@@ -25,6 +29,8 @@ def type_check(strict: bool = False):
     Handles None values in Union types more flexibly.
     """
     def decorator(func):
+        if not TYPE_CHECK_ENABLED:
+            return func
         @wraps(func)
         def wrapper(*args, **kwargs):
             """
@@ -66,6 +72,7 @@ def type_check(strict: bool = False):
     return decorator
 
 
+# @lru_cache(maxsize=None) Not working with unhashable types
 def _check_type(value, type_spec, param_name=None):
     """
     Recursively validate a value against a type specification.
