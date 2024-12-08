@@ -17,7 +17,8 @@ from rlcard import make
 import numpy as np
 import torch
 
-from .functools import type_check, reset_default_args
+from .logger import Logger
+from .pytools import type_check, reset_default_args
 
 def check_cuda_available(display_device_info: bool = False) -> bool:
     """
